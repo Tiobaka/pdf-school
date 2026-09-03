@@ -23,8 +23,10 @@ Any agent can control the system via standard bash commands:
 | **Auto-Forge Questions** | `tools/qbank_forge.py auto-forge --chunk-file content/<chunks>.jsonl --count 5` |
 | **Lint & Ingest Question** | `tools/qbank_forge.py ingest '<json_or_file>'` |
 | **Calculate FSRS Queue** | `tools/scheduler.py` |
-| **Launch Terminal Exam** | `tools/tutor_cli.py --mode tutor` |
+| **Launch Terminal Exam** | `tools/tutor_cli.py --mode tutor` (or `--tui`, or `--adaptive`) |
+| **Analytics & Weakness Triage** | `tools/study_db.py report` or `tools/study_db.py queue` |
 | **Export/Sync Anki** | `tools/anki_bridge.py tsv` or `tools/anki_bridge.py sync` |
+
 
 ---
 
