@@ -5,3 +5,6 @@ fsrs>=6.0.0
 pymupdf>=1.25.0
 pymupdf4llm>=1.28.0
 markitdown>=0.1.7
+textual>=8.0.0
+python-dotenv>=1.0.0
+requests>=2.30.0

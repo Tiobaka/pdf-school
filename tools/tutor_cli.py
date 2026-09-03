@@ -233,6 +233,7 @@ def main():
     parser.add_argument("--topic", help="Filter by topic")
     parser.add_argument("--count", type=int, default=10, help="Maximum number of questions to test")
     parser.add_argument("--mode", choices=["tutor", "timed"], default="tutor", help="Examination mode")
+    parser.add_argument("--tui", action="store_true", help="Launch in visual split-screen Textual TUI")
 
     args = parser.parse_args()
     questions = load_qbank(args.qbank)
@@ -244,10 +245,18 @@ def main():
         questions = [q for q in questions if args.topic.lower() in q.topic.lower()]
 
     session_questions = questions[:args.count]
+
+    if args.tui:
+        from tools.tutor_tui import TutorTUIApp
+        app = TutorTUIApp(questions=session_questions, mode=args.mode, history_path=args.history)
+        app.run()
+        return
+
     tutor_mode = (args.mode == "tutor")
 
     console.print(f"[bold green]Starting {args.mode.upper()} session with {len(session_questions)} questions...[/bold green]")
     time.sleep(1)
+
 
     correct_count = 0
     records = []

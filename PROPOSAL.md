@@ -166,9 +166,10 @@ pdf-school/
 
 ## 6. Phased Implementation Roadmap
 
-- [ ] **Phase 1**: Core Data Schemas, Ingestion (`pdf_extract.py`), and Exam Profiling (`profile_exam.py`).
-- [ ] **Phase 2**: Two-Track Question Forging (`qbank_forge.py`) with Refutational Feedback & Comparison Tables.
-- [ ] **Phase 3**: Robust CLI Examination Engine (`tutor_cli.py`) with Metacognition & Error Categorization.
-- [ ] **Phase 4**: FSRS Spaced Repetition Scheduling (`scheduler.py`) & Telemetry Processing.
-- [ ] **Phase 5**: Anki Bridge (`anki_bridge.py`) with AnkiConnect live sync.
-- [ ] **Phase 6**: Rich Textual TUI Layer (wrapping the validated CLI engine).
+- [x] **Phase 1**: Core Data Schemas, Ingestion (`extract.py`), and Exam Profiling (`profile_exam.py`).
+- [x] **Phase 2**: Two-Track Question Forging (`qbank_forge.py`) with Refutational Feedback & Comparison Tables.
+- [x] **Phase 3**: Robust CLI Examination Engine (`tutor_cli.py`) with Metacognition & Error Categorization.
+- [x] **Phase 4**: FSRS Spaced Repetition Scheduling (`scheduler.py`) & Telemetry Processing.
+- [x] **Phase 5**: Anki Bridge (`anki_bridge.py`) with AnkiConnect live sync.
+- [x] **Phase 6**: Rich Textual TUI Layer (`tutor_tui.py`) with standard themes (Dracula, Monokai, Solarized, Nord, Gruvbox).
+
