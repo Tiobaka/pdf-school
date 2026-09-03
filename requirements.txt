@@ -1,0 +1,7 @@
+pydantic>=2.10.0
+rich>=13.0.0
+pytest>=8.0.0
+fsrs>=6.0.0
+pymupdf>=1.25.0
+pymupdf4llm>=1.28.0
+markitdown>=0.1.7

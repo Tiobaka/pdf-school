@@ -1,0 +1,64 @@
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
+from pydantic import BaseModel, Field
+
+
+class ContentChunk(BaseModel):
+    chunk_id: str
+    source_file: str
+    page_start: int
+    page_end: int
+    section_title: Optional[str] = None
+    text: str
+    figures: List[str] = Field(default_factory=list)
+
+
+class ExamStyleProfile(BaseModel):
+    style_name: str = "default_mastery"
+    stem_type: str = "vignette"  # "direct_recall", "short_vignette", "long_case"
+    option_count: int = 5
+    allows_negative_stems: bool = False
+    allows_multiple_select: bool = False
+    focus_areas: List[str] = Field(default_factory=list)
+    exemplars: List[Dict[str, str]] = Field(default_factory=list)
+    system_prompt_override: Optional[str] = None
+
+
+class QBankQuestion(BaseModel):
+    id: str
+    topic: str
+    subtopic: Optional[str] = None
+    source_ref: Dict[str, str] = Field(default_factory=dict)
+    difficulty_hammer: int = Field(default=3, ge=1, le=5)
+    cognitive_level: str = "2nd_order_application"  # "1st_order_recall", "2nd_order_application", "3rd_order_synthesis"
+    figures: List[str] = Field(default_factory=list)
+    vignette: str
+    lead_in: str
+    options: Dict[str, str]
+    correct_key: str
+    educational_objective: str
+    distractor_analysis: Dict[str, str]
+    refutational_hints: Dict[str, str] = Field(default_factory=dict)
+    comparison_table: Optional[str] = None
+
+
+class HistoryRecord(BaseModel):
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    question_id: str
+    selected_key: str
+    correct_key: str
+    is_correct: bool
+    time_spent_seconds: float
+    confidence_rating: str = "certain"  # "certain", "educated_guess", "blind_guess"
+    switched_answer: bool = False
+    original_selection: Optional[str] = None
+    error_category: Optional[str] = None  # "knowledge_gap", "misconception", "execution_error"
+    user_note: Optional[str] = None
+    fsrs_state: Optional[Dict[str, float]] = None
+
+
+class DailySchedule(BaseModel):
+    date: str
+    due_reviews: List[str] = Field(default_factory=list)
+    new_questions: List[str] = Field(default_factory=list)
+    target_date: Optional[str] = None
