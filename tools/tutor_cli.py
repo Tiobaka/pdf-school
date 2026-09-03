@@ -247,18 +247,33 @@ def main():
     parser.add_argument("--qbank", default=DEFAULT_QBANK, help="Question bank JSONL file")
     parser.add_argument("--history", default=DEFAULT_HISTORY, help="History telemetry file")
     parser.add_argument("--topic", help="Filter by topic")
-    parser.add_argument("--count", type=int, default=10, help="Maximum number of questions to test")
     parser.add_argument("--mode", choices=["tutor", "timed"], default="tutor", help="Examination mode")
     parser.add_argument("--tui", action="store_true", help="Launch in visual split-screen Textual TUI")
+    parser.add_argument("--adaptive", "--weakness", dest="adaptive", action="store_true", help="Adaptive weakness remediation mode")
 
     args = parser.parse_args()
-    questions = load_qbank(args.qbank)
+
+    if args.adaptive:
+        from tools.study_db import get_weakness_queue
+        questions = get_weakness_queue(
+            qbank_path=Path(args.qbank),
+            history_path=Path(args.history),
+            limit=args.count,
+            topic=args.topic,
+        )
+        if not questions:
+            console.print("[yellow]No specific weakness questions found. Loading standard question bank.[/yellow]")
+            questions = load_qbank(args.qbank)
+            if args.topic:
+                questions = [q for q in questions if args.topic.lower() in q.topic.lower()]
+    else:
+        questions = load_qbank(args.qbank)
+        if args.topic:
+            questions = [q for q in questions if args.topic.lower() in q.topic.lower()]
+
     if not questions:
         console.print("[yellow]No questions available to start session.[/yellow]")
         sys.exit(0)
-
-    if args.topic:
-        questions = [q for q in questions if args.topic.lower() in q.topic.lower()]
 
     session_questions = questions[:args.count]
 
@@ -270,8 +285,9 @@ def main():
 
     tutor_mode = (args.mode == "tutor")
 
-    console.print(f"[bold green]Starting {args.mode.upper()} session with {len(session_questions)} questions...[/bold green]")
+    console.print(f"[bold green]Starting {args.mode.upper()} session with {len(session_questions)} questions{' (Adaptive Weakness Mode)' if args.adaptive else ''}...[/bold green]")
     time.sleep(1)
+
 
 
     correct_count = 0
@@ -299,6 +315,14 @@ def main():
 
     console.print(Panel(summary_table, border_style="blue"))
 
+    # Auto-sync telemetry to SQLite mirror
+    try:
+        from tools.study_db import sync_db
+        sync_db(history_path=Path(args.history), qbank_path=Path(args.qbank))
+    except Exception:
+        pass
+
 
 if __name__ == "__main__":
     main()
+

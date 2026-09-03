@@ -113,7 +113,68 @@ MEDICAL_LAB_VALUES_MD = """
 """
 
 
+class ConfidenceModal(ModalScreen[str]):
+    DEFAULT_CSS = """
+    ConfidenceModal {
+        align: center middle;
+    }
+    #conf-dialog {
+        padding: 1 2;
+        width: 60;
+        height: auto;
+        border: thick $primary;
+        background: $surface;
+    }
+    .modal-btn {
+        margin: 1 0;
+        width: 100%;
+    }
+    """
+    def compose(self) -> ComposeResult:
+        with Vertical(id="conf-dialog"):
+            yield Label("⚖️ [bold]Metacognitive Calibration[/bold]\nHow confident are you in this answer?", classes="modal-title")
+            yield Button("[1] Certain (High Confidence)", id="conf-certain", variant="success", classes="modal-btn")
+            yield Button("[2] Educated Guess (Moderate)", id="conf-educated_guess", variant="primary", classes="modal-btn")
+            yield Button("[3] Blind Guess (Low Confidence)", id="conf-blind_guess", variant="warning", classes="modal-btn")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        btn_id = event.button.id or ""
+        conf = btn_id.replace("conf-", "")
+        self.dismiss(conf)
+
+
+class ErrorCategoryModal(ModalScreen[str]):
+    DEFAULT_CSS = """
+    ErrorCategoryModal {
+        align: center middle;
+    }
+    #err-dialog {
+        padding: 1 2;
+        width: 65;
+        height: auto;
+        border: thick $error;
+        background: $surface;
+    }
+    .modal-btn {
+        margin: 1 0;
+        width: 100%;
+    }
+    """
+    def compose(self) -> ComposeResult:
+        with Vertical(id="err-dialog"):
+            yield Label("🔍 [bold red]Tri-Partite Error Triage[/bold red]\nWhat best describes why this question was missed?", classes="modal-title")
+            yield Button("Knowledge Gap (Didn't know core concept/fact)", id="err-knowledge_gap", variant="primary", classes="modal-btn")
+            yield Button("Misconception (Held incorrect rule or mechanism)", id="err-misconception", variant="warning", classes="modal-btn")
+            yield Button("Execution Error (Misread stem or misclick)", id="err-execution_error", variant="default", classes="modal-btn")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        btn_id = event.button.id or ""
+        cat = btn_id.replace("err-", "")
+        self.dismiss(cat)
+
+
 class TutorTUIApp(App):
+
     CSS = """
     Screen {
         layout: vertical;
@@ -432,10 +493,14 @@ class TutorTUIApp(App):
             return
         q = self.questions[self.current_idx]
         if key in q.options:
+            if not hasattr(self, "first_answers"):
+                self.first_answers = {}
+            if self.current_idx not in self.first_answers:
+                self.first_answers[self.current_idx] = key
             self.user_answers[self.current_idx] = key
             self.refresh_question_view()
 
-    def action_submit_choice(self):
+    def action_submit_choice(self, auto_confirm: bool = False):
         if self.submitted.get(self.current_idx, False):
             return
 
@@ -444,20 +509,46 @@ class TutorTUIApp(App):
             self.notify("Please select an option before submitting.", severity="warning")
             return
 
+        # Bypass modals in timed examination mode or when auto_confirmed
+        if auto_confirm or self.mode == "timed":
+            self._finalize_submission("educated_guess", None)
+            return
+
+        def on_confidence(conf: Optional[str]):
+            confidence = conf or "educated_guess"
+            q = self.questions[self.current_idx]
+            is_correct = (chosen == q.correct_key)
+            if not is_correct and self.mode == "tutor":
+                self.push_screen(ErrorCategoryModal(), lambda cat: self._finalize_submission(confidence, cat or "knowledge_gap"))
+            else:
+                self._finalize_submission(confidence, None)
+
+        self.push_screen(ConfidenceModal(), on_confidence)
+
+    def _finalize_submission(self, confidence: str, error_category: Optional[str] = None):
         self.submitted[self.current_idx] = True
         q = self.questions[self.current_idx]
+        chosen = self.user_answers.get(self.current_idx)
         is_correct = (chosen == q.correct_key)
+
+        first_chosen = getattr(self, "first_answers", {}).get(self.current_idx, chosen)
+        switched = bool(first_chosen and first_chosen != chosen)
+        orig_sel = first_chosen if switched else None
 
         elapsed = round(time.time() - self.start_times.get(self.current_idx, time.time()), 1)
         record = HistoryRecord(
             question_id=q.id,
-            selected_key=chosen,
+            selected_key=chosen or "",
             correct_key=q.correct_key,
             is_correct=is_correct,
             time_spent_seconds=elapsed,
-            confidence_rating="educated_guess",
+            confidence_rating=confidence,
+            switched_answer=switched,
+            original_selection=orig_sel,
+            error_category=error_category,
         )
         log_history(record, self.history_path)
+
 
         self.refresh_question_view()
         # Switch tab to breakdown automatically
@@ -468,6 +559,14 @@ class TutorTUIApp(App):
             self.notify("Correct answer! Review explanation on the right.", severity="information")
         else:
             self.notify(f"Incorrect. Single best answer is ({q.correct_key}).", severity="error")
+
+    def on_unmount(self) -> None:
+        try:
+            from tools.study_db import sync_db
+            sync_db(history_path=Path(self.history_path))
+        except Exception:
+            pass
+
 
     def action_eliminate_choice(self):
         chosen = self.user_answers.get(self.current_idx)
@@ -536,10 +635,30 @@ def main():
     parser.add_argument("--history", default=DEFAULT_HISTORY, help="Path to history.jsonl")
     parser.add_argument("--mode", choices=["tutor", "timed"], default="tutor", help="Exam mode")
     parser.add_argument("--count", type=int, default=15, help="Number of questions in session")
+    parser.add_argument("--topic", help="Filter by topic")
+    parser.add_argument("--adaptive", "--weakness", dest="adaptive", action="store_true", help="Adaptive weakness remediation mode")
 
     args = parser.parse_args()
-    questions = load_qbank(args.qbank)
+
+    if args.adaptive:
+        from tools.study_db import get_weakness_queue
+        questions = get_weakness_queue(
+            qbank_path=Path(args.qbank),
+            history_path=Path(args.history),
+            limit=args.count,
+            topic=args.topic,
+        )
+        if not questions:
+            questions = load_qbank(args.qbank)
+            if args.topic:
+                questions = [q for q in questions if args.topic.lower() in q.topic.lower()]
+    else:
+        questions = load_qbank(args.qbank)
+        if args.topic:
+            questions = [q for q in questions if args.topic.lower() in q.topic.lower()]
+
     if not questions:
+
         # Provide rich demonstration questions so the TUI works out-of-the-box
         questions = [
             QBankQuestion(

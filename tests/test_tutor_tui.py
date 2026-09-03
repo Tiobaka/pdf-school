@@ -67,9 +67,10 @@ def test_tui_app_headless_mount_and_theme_cycling(tmp_path):
             assert tabs.active == "tab-labs"
 
             # Test submit
-            app.action_submit_choice()
+            app.action_submit_choice(auto_confirm=True)
             assert app.submitted[0] is True
             assert hist_file.exists()
+
             assert tabs.active == "tab-breakdown"
 
     asyncio.run(run_headless())

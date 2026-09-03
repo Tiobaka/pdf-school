@@ -6,3 +6,7 @@ __pycache__/
 dist/
 build/
 .env
+data/*.db
+data/*.db-wal
+data/*.db-shm
+

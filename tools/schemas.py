@@ -1,6 +1,8 @@
+import hashlib
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, model_validator
+
 
 
 
@@ -50,6 +52,8 @@ class QBankQuestion(BaseModel):
 
 
 class HistoryRecord(BaseModel):
+
+    record_id: Optional[str] = None
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     question_id: str
     selected_key: str
@@ -62,6 +66,13 @@ class HistoryRecord(BaseModel):
     error_category: Optional[str] = None  # "knowledge_gap", "misconception", "execution_error"
     user_note: Optional[str] = None
     fsrs_state: Optional[Dict[str, Any]] = None
+
+    def compute_record_id(self) -> str:
+        if self.record_id:
+            return self.record_id
+        raw = f"{self.timestamp}|{self.question_id}|{self.selected_key}|{self.time_spent_seconds}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
 
 
 
