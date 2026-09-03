@@ -220,7 +220,9 @@ class TutorTUIApp(App):
         Binding("v", "toggle_source", "Source"),
         Binding("l", "toggle_labs", "Labs"),
         Binding("f", "flag_question", "Flag"),
+        Binding("x", "eliminate_choice", "Eliminate"),
         Binding("1", "select_opt('A')", "A", show=False),
+
         Binding("2", "select_opt('B')", "B", show=False),
         Binding("3", "select_opt('C')", "C", show=False),
         Binding("4", "select_opt('D')", "D", show=False),
@@ -453,7 +455,7 @@ class TutorTUIApp(App):
             correct_key=q.correct_key,
             is_correct=is_correct,
             time_spent_seconds=elapsed,
-            confidence_rating="certain",
+            confidence_rating="educated_guess",
         )
         log_history(record, self.history_path)
 
@@ -466,6 +468,20 @@ class TutorTUIApp(App):
             self.notify("Correct answer! Review explanation on the right.", severity="information")
         else:
             self.notify(f"Incorrect. Single best answer is ({q.correct_key}).", severity="error")
+
+    def action_eliminate_choice(self):
+        chosen = self.user_answers.get(self.current_idx)
+        if chosen:
+            eliminated = self.eliminated_options[self.current_idx]
+            if chosen in eliminated:
+                eliminated.remove(chosen)
+                self.notify(f"Restored option ({chosen})", timeout=2)
+            else:
+                eliminated.add(chosen)
+                self.notify(f"Eliminated option ({chosen})", timeout=2)
+            self.refresh_question_view()
+        else:
+            self.notify("Select an option first to eliminate it.", severity="warning")
 
     def action_next_question(self):
         if self.current_idx < len(self.questions) - 1:
@@ -505,19 +521,13 @@ class TutorTUIApp(App):
         elif btn_id == "btn-flag":
             self.action_flag_question()
         elif btn_id == "btn-strike":
-            chosen = self.user_answers.get(self.current_idx)
-            if chosen:
-                eliminated = self.eliminated_options[self.current_idx]
-                if chosen in eliminated:
-                    eliminated.remove(chosen)
-                else:
-                    eliminated.add(chosen)
-                self.refresh_question_view()
-            else:
-                self.notify("Select an option first to eliminate it.", severity="warning")
+            self.action_eliminate_choice()
+        elif btn_id == "opt-btn-":
+            pass
         elif btn_id.startswith("opt-btn-"):
             opt_key = btn_id.replace("opt-btn-", "")
             self.action_select_opt(opt_key)
+
 
 
 def main():

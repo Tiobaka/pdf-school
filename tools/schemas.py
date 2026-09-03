@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field, model_validator
+
 
 
 class ContentChunk(BaseModel):
@@ -41,6 +42,12 @@ class QBankQuestion(BaseModel):
     refutational_hints: Dict[str, str] = Field(default_factory=dict)
     comparison_table: Optional[str] = None
 
+    @model_validator(mode="after")
+    def verify_correct_key_exists(self) -> "QBankQuestion":
+        if self.correct_key not in self.options:
+            raise ValueError(f"correct_key '{self.correct_key}' must be present in options: {list(self.options.keys())}")
+        return self
+
 
 class HistoryRecord(BaseModel):
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -54,7 +61,8 @@ class HistoryRecord(BaseModel):
     original_selection: Optional[str] = None
     error_category: Optional[str] = None  # "knowledge_gap", "misconception", "execution_error"
     user_note: Optional[str] = None
-    fsrs_state: Optional[Dict[str, float]] = None
+    fsrs_state: Optional[Dict[str, Any]] = None
+
 
 
 class DailySchedule(BaseModel):

@@ -127,12 +127,12 @@ def main():
 
     # TSV Export
     p_tsv = subparsers.add_parser("tsv", help="Export to native Anki TSV file")
-    p_tsv.add_argument("--qbank", default="data/qbank.jsonl", help="Path to qbank.jsonl")
-    p_tsv.add_argument("--output", default="data/anki_cards.tsv", help="Output TSV file path")
+    p_tsv.add_argument("--qbank", default=DEFAULT_QBANK, help="Path to qbank.jsonl")
+    p_tsv.add_argument("--output", default=DEFAULT_TSV, help="Output TSV path")
 
     # AnkiConnect Sync
     p_sync = subparsers.add_parser("sync", help="Push questions directly to running Anki via AnkiConnect")
-    p_sync.add_argument("--qbank", default="data/qbank.jsonl", help="Path to qbank.jsonl")
+    p_sync.add_argument("--qbank", default=DEFAULT_QBANK, help="Path to qbank.jsonl")
     p_sync.add_argument("--deck", default="PDF-School", help="Target deck name in Anki")
 
     args = parser.parse_args()
@@ -148,8 +148,8 @@ def main():
         try:
             added = sync_to_ankiconnect(questions, args.deck)
             console.print(f"[green]🎉 Successfully synced {added} cards to Anki deck '[bold]{args.deck}[/bold]'![/green]")
-        except ConnectionError as ce:
-            console.print(f"[red]❌ Connection failed:[/red] {ce}")
+        except (ConnectionError, RuntimeError) as ce:
+            console.print(f"[red]❌ Anki sync failed:[/red] {ce}")
             console.print("[blue]Tip: You can always use 'tools/anki_bridge.py tsv' to export a file for manual import.[/blue]")
             sys.exit(1)
 

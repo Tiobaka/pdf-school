@@ -109,7 +109,11 @@ def call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.3) -> 
     timeout_secs = 60
 
     if provider == "gemini":
-        url = f"{base_url}/{model}:generateContent?key={api_key}"
+        url = f"{base_url}/{model}:generateContent"
+        headers = {
+            "x-goog-api-key": api_key,
+            "Content-Type": "application/json",
+        }
         payload = {
             "contents": [
                 {"role": "user", "parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]}
@@ -119,10 +123,11 @@ def call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.3) -> 
                 "responseMimeType": "application/json",
             },
         }
-        resp = requests.post(url, json=payload, timeout=timeout_secs)
+        resp = requests.post(url, headers=headers, json=payload, timeout=timeout_secs)
         resp.raise_for_status()
         data = resp.json()
         return data["candidates"][0]["content"]["parts"][0]["text"]
+
 
     elif provider == "anthropic":
         url = base_url

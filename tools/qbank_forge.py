@@ -18,7 +18,8 @@ if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
 import argparse
 import hashlib
 import json
-from typing import Any, Dict, List, Optional, Tuple
+import re
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
@@ -26,6 +27,7 @@ from rich.table import Table
 
 sys.path.insert(0, str(PROJECT_ROOT))
 from tools.schemas import ContentChunk, ExamStyleProfile, QBankQuestion
+
 
 
 
@@ -131,13 +133,11 @@ def validate_question_flaws(question_data: Dict[str, Any], allow_negative: bool 
     if not lead_in.endswith("?"):
         flaws.append("Lead-in does not end with a question mark ('?')")
 
-    # 3. Check negative stem
+    # 3. Check negative stem (only in lead_in per NBME guidelines)
     if not allow_negative:
-        vignette = question_data.get("vignette", "")
-        combined = f"{vignette} {lead_in}"
-        for bad_word in ["EXCEPT", "NOT ", "LEAST", "INCORRECT"]:
-            if bad_word in combined:
-                flaws.append(f"Contains negative stem '{bad_word}', which violates NBME guidelines")
+        for bad_word in [r"\bEXCEPT\b", r"\bNOT\b", r"\bLEAST\b", r"\bINCORRECT\b"]:
+            if re.search(bad_word, lead_in):
+                flaws.append(f"Contains negative stem '{bad_word}' in lead-in, which violates NBME guidelines")
 
     # 4. Check 'all of the above' / 'none of the above'
     for opt_key, opt_text in options.items():
@@ -162,12 +162,20 @@ def validate_question_flaws(question_data: Dict[str, Any], allow_negative: bool 
     return flaws
 
 
-def append_to_qbank(question: QBankQuestion, qbank_path: str = "data/qbank.jsonl") -> bool:
+def append_to_qbank(
+    question: QBankQuestion,
+    qbank_path: str = "data/qbank.jsonl",
+    existing_ids: Optional[Set[str]] = None,
+) -> bool:
     out_file = Path(qbank_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # Check for duplicate ID
-    if out_file.exists():
+    if existing_ids is not None:
+        if question.id in existing_ids:
+            console.print(f"[yellow]⚠️ Question ID '{question.id}' already exists in cache. Skipping duplicate.[/yellow]")
+            return False
+        existing_ids.add(question.id)
+    elif out_file.exists():
         with open(out_file, "r", encoding="utf-8") as f:
             for line in f:
                 if not line.strip():
@@ -184,6 +192,7 @@ def append_to_qbank(question: QBankQuestion, qbank_path: str = "data/qbank.jsonl
         f.write(json.dumps(question.model_dump(), ensure_ascii=False) + "\n")
 
     return True
+
 
 
 from tools.llm_client import generate_structured_json
@@ -220,6 +229,19 @@ def auto_forge_questions(
     success_count = 0
     total_to_forge = min(count, len(chunks_data))
 
+    # Pre-cache existing IDs to avoid O(N^2) disk reads
+    existing_ids: Set[str] = set()
+    if Path(qbank_path).exists():
+        with open(qbank_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    existing_ids.add(json.loads(line).get("id"))
+                except Exception:
+                    pass
+
     for idx in range(total_to_forge):
         chunk = ContentChunk(**chunks_data[idx])
         console.print(f"\n[bold cyan]Forging question {idx + 1}/{total_to_forge}...[/bold cyan] ([dim]{chunk.chunk_id}[/dim])")
@@ -238,7 +260,7 @@ def auto_forge_questions(
                     console.print("[red]Skipping question due to item flaws.[/red]")
                     continue
 
-            if append_to_qbank(question, qbank_path):
+            if append_to_qbank(question, qbank_path, existing_ids=existing_ids):
                 console.print(f"[green]✅ Forged and saved: {question.id} ('{question.lead_in[:50]}...')[/green]")
                 success_count += 1
 
@@ -246,6 +268,7 @@ def auto_forge_questions(
             console.print(f"[red]❌ Forging failed for chunk {chunk.chunk_id}: {e}[/red]")
 
     return success_count
+
 
 
 def main():
@@ -315,12 +338,15 @@ def main():
         print("=" * 99 + "\n")
 
     elif args.command == "ingest":
-        q_raw = args.question_json
-        if Path(q_raw).exists():
+        q_raw = args.question_json.strip()
+        if q_raw.startswith("{") or len(q_raw) > 1024:
+            data = json.loads(q_raw)
+        elif Path(q_raw).exists():
             with open(q_raw, "r", encoding="utf-8") as f:
                 data = json.load(f)
         else:
             data = json.loads(q_raw)
+
 
         # Validate against schema
         try:

@@ -42,12 +42,35 @@ def test_tui_app_headless_mount_and_theme_cycling(tmp_path):
             assert app.theme in AVAILABLE_THEMES
 
             # Test option selection
+            app.action_select_opt("A")
+            assert app.user_answers[0] == "A"
+
+            # Test distractor elimination (x key)
+            app.action_eliminate_choice()
+            assert "A" in app.eliminated_options[0]
+
+            # Toggle eliminate again to restore
+            app.action_eliminate_choice()
+            assert "A" not in app.eliminated_options[0]
+
+            # Select correct option B
             app.action_select_opt("B")
             assert app.user_answers[0] == "B"
+
+            # Test tabs switching
+            app.action_toggle_source()
+            from textual.widgets import TabbedContent
+            tabs = app.query_one("#tabs-view", TabbedContent)
+            assert tabs.active == "tab-source"
+
+            app.action_toggle_labs()
+            assert tabs.active == "tab-labs"
 
             # Test submit
             app.action_submit_choice()
             assert app.submitted[0] is True
             assert hist_file.exists()
+            assert tabs.active == "tab-breakdown"
 
     asyncio.run(run_headless())
+

@@ -100,6 +100,22 @@ def extract_pdf_with_pymupdf4llm(
             current_page_start = page_num + 1
             current_section = None
 
+    # Flush any remaining words from trailing pages
+    if current_words:
+        combined_text = " ".join(current_words)
+        chunk_hash = hashlib.sha256(f"{doc_stem}_{current_page_start}_{len(pages_data)}_{combined_text[:60]}".encode()).hexdigest()[:12]
+        chunk_id = f"{doc_stem}_p{current_page_start}-{len(pages_data)}_{chunk_hash}"
+        chunk = ContentChunk(
+            chunk_id=chunk_id,
+            source_file=str(pdf_path),
+            page_start=current_page_start,
+            page_end=len(pages_data),
+            section_title=current_section,
+            text=combined_text,
+            figures=list(dict.fromkeys(current_figures)),
+        )
+        chunks.append(chunk)
+
     # Write JSONL
     out_file = output_dir / f"{doc_stem}_chunks.jsonl"
     with open(out_file, "w", encoding="utf-8") as f:
@@ -107,6 +123,7 @@ def extract_pdf_with_pymupdf4llm(
             f.write(json.dumps(ch.model_dump(), ensure_ascii=False) + "\n")
 
     return chunks
+
 
 
 def extract_office_with_markitdown(
@@ -217,12 +234,15 @@ def process_file_or_dir(
 
     for f in files_to_process:
         ext = f.suffix.lower()
-        if ext == ".pdf":
-            chunks = extract_pdf_with_pymupdf4llm(f, out_dir, fig_dir, target_chunk_words=chunk_size)
-            table.add_row(f.name, "PyMuPDF4LLM (Layout & Tables)", str(len(chunks)), f"{f.stem}_chunks.jsonl")
-        elif ext in [".docx", ".pptx", ".xlsx", ".txt", ".md"]:
-            chunks = extract_office_with_markitdown(f, out_dir, target_chunk_words=chunk_size)
-            table.add_row(f.name, "Microsoft MarkItDown", str(len(chunks)), f"{f.stem}_chunks.jsonl")
+        try:
+            if ext == ".pdf":
+                chunks = extract_pdf_with_pymupdf4llm(f, out_dir, fig_dir, target_chunk_words=chunk_size)
+                table.add_row(f.name, "PyMuPDF4LLM (Layout & Tables)", str(len(chunks)), f"{f.stem}_chunks.jsonl")
+            elif ext in [".docx", ".pptx", ".xlsx", ".txt", ".md"]:
+                chunks = extract_office_with_markitdown(f, out_dir, target_chunk_words=chunk_size)
+                table.add_row(f.name, "Microsoft MarkItDown", str(len(chunks)), f"{f.stem}_chunks.jsonl")
+        except Exception as e:
+            table.add_row(f.name, "[red]Failed[/red]", "0", f"[red]{e}[/red]")
 
     console.print(table)
 
@@ -230,9 +250,10 @@ def process_file_or_dir(
 def main():
     parser = argparse.ArgumentParser(description="Multi-format document extractor (PDF, DOCX, PPTX) for PDF-School")
     parser.add_argument("target", help="Path to document file or directory")
-    parser.add_argument("--output-dir", default="content", help="Directory for chunk JSONL files")
-    parser.add_argument("--figures-dir", default="content/figures", help="Directory for extracted images")
+    parser.add_argument("--output-dir", default=str(PROJECT_ROOT / "content"), help="Directory for chunk JSONL files")
+    parser.add_argument("--figures-dir", default=str(PROJECT_ROOT / "content" / "figures"), help="Directory for extracted images")
     parser.add_argument("--chunk-size", type=int, default=500, help="Target word count per chunk")
+
 
     args = parser.parse_args()
     process_file_or_dir(args.target, args.output_dir, args.figures_dir, args.chunk_size)

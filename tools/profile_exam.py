@@ -30,18 +30,21 @@ from tools.schemas import ExamStyleProfile
 
 
 
+DEFAULT_INPUT = str(PROJECT_ROOT / "sources" / "past_exams")
+DEFAULT_OUTPUT = str(PROJECT_ROOT / "data" / "exam_style.json")
+
 console = Console()
 
 
 def extract_text_from_file(file_path: Path) -> str:
     if file_path.suffix.lower() == ".pdf":
-        doc = pymupdf.open(str(file_path))
-        pages_text = [page.get_text() for page in doc]
-        doc.close()
+        with pymupdf.open(str(file_path)) as doc:
+            pages_text = [page.get_text() for page in doc]
         return "\n".join(pages_text)
     else:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             return f.read()
+
 
 
 def analyze_exam_text(raw_text: str, profile_name: str = "custom_professor") -> ExamStyleProfile:
@@ -181,8 +184,9 @@ def display_profile(profile: ExamStyleProfile, dest_file: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze past exams and generate an ExamStyleProfile for Track A")
-    parser.add_argument("--input", default="sources/past_exams", help="Directory or file containing past exams")
-    parser.add_argument("--output", default="data/exam_style.json", help="Destination JSON path for the profile")
+    parser.add_argument("--input", default=DEFAULT_INPUT, help="Directory or file containing past exams")
+    parser.add_argument("--output", default=DEFAULT_OUTPUT, help="Destination JSON path for the profile")
+
 
     args = parser.parse_args()
     profile = profile_exams(args.input, args.output)

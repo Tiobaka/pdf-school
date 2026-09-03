@@ -32,6 +32,32 @@ def test_validate_question_flaws_detects_all_of_the_above():
     assert any("compromises discrimination" in f for f in flaws)
 
 
+def test_validate_question_flaws_distinguishes_vignette_from_leadin():
+    # Vignette contains "not in acute distress" and "except for mild bibasilar crackles"
+    # This should NOT be flagged as negative stem flaw because lead-in is positive
+    valid_q = {
+        "options": {"A": "A", "B": "B"},
+        "correct_key": "A",
+        "lead_in": "Which of the following is the most likely diagnosis?",
+        "vignette": "A 45-year-old male is not in acute distress. Examination is unremarkable except for mild edema.",
+        "distractor_analysis": {"A": "ok", "B": "no"},
+    }
+    flaws = validate_question_flaws(valid_q)
+    assert not any("negative stem" in f for f in flaws)
+
+    # But if lead_in has negative phrasing, it MUST be flagged
+    negative_lead_in_q = {
+        "options": {"A": "A", "B": "B"},
+        "correct_key": "A",
+        "lead_in": "Which of the following is NOT an appropriate therapy?",
+        "vignette": "A 45-year-old male presents with palpitations.",
+        "distractor_analysis": {"A": "ok", "B": "no"},
+    }
+    flaws_neg = validate_question_flaws(negative_lead_in_q)
+    assert any("negative stem" in f for f in flaws_neg)
+
+
+
 def test_append_to_qbank(tmp_path):
     qbank_file = tmp_path / "qbank.jsonl"
     q = QBankQuestion(

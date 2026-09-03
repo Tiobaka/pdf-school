@@ -18,7 +18,8 @@ if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
 import argparse
 import json
 from datetime import datetime, timezone
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Tuple
+
 
 from fsrs import Card, Rating, Scheduler, State
 from rich.console import Console
@@ -42,6 +43,7 @@ def compute_question_fsrs_states(
 ) -> Dict[str, Card]:
     """
     Replays history.jsonl to compute the current FSRS Card state for each question.
+    Records are sorted by timestamp to ensure chronological replay.
     """
     path = Path(history_path)
     if not path.exists():
@@ -49,6 +51,7 @@ def compute_question_fsrs_states(
 
     scheduler = Scheduler()
     cards: Dict[str, Card] = {}
+    records: List[Tuple[datetime, HistoryRecord]] = []
 
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
@@ -58,34 +61,34 @@ def compute_question_fsrs_states(
             try:
                 rec_data = json.loads(line)
                 rec = HistoryRecord(**rec_data)
-            except Exception:
-                continue
-
-            q_id = rec.question_id
-            if q_id not in cards:
-                cards[q_id] = Card()
-
-            # Map user outcome & confidence to FSRS Rating
-            if not rec.is_correct:
-                rating = Rating.Again
-            else:
-                if rec.confidence_rating == "blind_guess":
-                    rating = Rating.Hard
-                elif rec.confidence_rating == "educated_guess":
-                    rating = Rating.Good
-                else:  # certain
-                    rating = Rating.Easy
-
-            # Parse record timestamp
-            try:
                 review_time = datetime.fromisoformat(rec.timestamp)
                 if review_time.tzinfo is None:
                     review_time = review_time.replace(tzinfo=timezone.utc)
+                records.append((review_time, rec))
             except Exception:
-                review_time = datetime.now(timezone.utc)
+                continue
 
-            updated_card, _ = scheduler.review_card(cards[q_id], rating, review_time)
-            cards[q_id] = updated_card
+    # Chronological sort guarantees FSRS stability calculations never receive negative intervals
+    records.sort(key=lambda x: x[0])
+
+    for review_time, rec in records:
+        q_id = rec.question_id
+        if q_id not in cards:
+            cards[q_id] = Card()
+
+        # Map user outcome & confidence to FSRS Rating
+        if not rec.is_correct:
+            rating = Rating.Again
+        else:
+            if rec.confidence_rating == "blind_guess":
+                rating = Rating.Hard
+            elif rec.confidence_rating == "educated_guess":
+                rating = Rating.Good
+            else:  # certain
+                rating = Rating.Easy
+
+        updated_card, _ = scheduler.review_card(cards[q_id], rating, review_time)
+        cards[q_id] = updated_card
 
     return cards
 
@@ -116,18 +119,26 @@ def generate_daily_schedule(
     cards = compute_question_fsrs_states(history_path)
     now = datetime.now(timezone.utc)
 
-    # 3. Identify due reviews
-    due_reviews: List[str] = []
-    seen_ids: Set[str] = set(cards.keys())
+    # 3. Identify due reviews, filtering out deleted/orphaned questions
+    # and sorting by most overdue first
+    due_cards: List[Tuple[datetime, str]] = []
+    active_ids: Set[str] = set(all_q_ids)
 
     for q_id, card in cards.items():
+        if q_id not in active_ids:
+            continue
         card_due = card.due
         if card_due.tzinfo is None:
             card_due = card_due.replace(tzinfo=timezone.utc)
         if card_due <= now:
-            due_reviews.append(q_id)
+            due_cards.append((card_due, q_id))
+
+    # Sort so most overdue items are reviewed first
+    due_cards.sort(key=lambda item: item[0])
+    due_reviews = [q_id for _, q_id in due_cards]
 
     # 4. Identify unencountered (new) questions
+    seen_ids: Set[str] = set(cards.keys())
     unseen_ids = [qid for qid in all_q_ids if qid not in seen_ids]
 
     selected_reviews = due_reviews[:max_reviews]
@@ -138,6 +149,7 @@ def generate_daily_schedule(
         date=today_str,
         due_reviews=selected_reviews,
         new_questions=selected_new,
+
     )
 
     out_file = Path(output_path)
@@ -163,9 +175,10 @@ def display_schedule(schedule: DailySchedule):
 
 def main():
     parser = argparse.ArgumentParser(description="FSRS Spaced Repetition study scheduler for PDF-School")
-    parser.add_argument("--qbank", default="data/qbank.jsonl", help="Path to qbank.jsonl")
-    parser.add_argument("--history", default="data/history.jsonl", help="Path to history.jsonl")
-    parser.add_argument("--output", default="data/schedule.json", help="Path to schedule.json")
+    parser.add_argument("--qbank", default=DEFAULT_QBANK, help="Path to qbank.jsonl")
+    parser.add_argument("--history", default=DEFAULT_HISTORY, help="Path to history.jsonl")
+    parser.add_argument("--output", default=DEFAULT_SCHEDULE, help="Path to schedule.json")
+
     parser.add_argument("--max-reviews", type=int, default=30, help="Maximum review questions per day")
     parser.add_argument("--max-new", type=int, default=15, help="Maximum new questions per day")
 

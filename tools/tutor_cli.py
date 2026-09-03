@@ -74,7 +74,7 @@ def display_source_peek(source_ref: Dict[str, str]):
 
     # Attempt to locate source chunk in content/
     found_text = None
-    for jsonl_file in Path("content").glob("*_chunks.jsonl"):
+    for jsonl_file in (PROJECT_ROOT / "content").glob("*_chunks.jsonl"):
         try:
             with open(jsonl_file, "r", encoding="utf-8") as f:
                 for line in f:
@@ -157,9 +157,12 @@ def run_question_session(
                 switched = True
                 original_selection = selected_key
             selected_key = choice
-            break
+            console.print(f"  Selected: [bold green]({choice})[/bold green]. Confirm answer? [dim](Enter 'y' to submit, or choose another option)[/dim]")
+            if Prompt.ask("Submit choice?", choices=["y", "n"], default="y") == "y":
+                break
         else:
             console.print("[red]Invalid selection. Please choose an available option.[/red]")
+
 
     elapsed_time = round(time.time() - start_time, 1)
 
