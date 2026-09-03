@@ -6,12 +6,21 @@ Built with Textual. Features split-screen examination, dynamic theme switching
 instant source peek, and medical lab reference values.
 """
 
+import os
+import sys
+from pathlib import Path
+
+# Automatically use local virtualenv interpreter if invoked with system python
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_venv_python = PROJECT_ROOT / ".venv" / "bin" / "python"
+if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
+    os.execv(str(_venv_python), [str(_venv_python)] + sys.argv)
+
+
 import argparse
 import json
-import sys
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 from textual.app import App, ComposeResult
@@ -33,7 +42,7 @@ from textual.widgets import (
     TabPane,
 )
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(PROJECT_ROOT))
 from tools.schemas import HistoryRecord, QBankQuestion
 from tools.tutor_cli import load_qbank, log_history
 
@@ -49,7 +58,10 @@ AVAILABLE_THEMES = [
     "tokyo-night",
 ]
 
-CONFIG_PATH = Path("data/config.json")
+CONFIG_PATH = PROJECT_ROOT / "data" / "config.json"
+DEFAULT_QBANK = str(PROJECT_ROOT / "data" / "qbank.jsonl")
+DEFAULT_HISTORY = str(PROJECT_ROOT / "data" / "history.jsonl")
+
 
 
 def load_saved_theme() -> str:
@@ -510,16 +522,75 @@ class TutorTUIApp(App):
 
 def main():
     parser = argparse.ArgumentParser(description="PDF-School Visual Terminal Examination Suite (Textual TUI)")
-    parser.add_argument("--qbank", default="data/qbank.jsonl", help="Path to qbank.jsonl")
-    parser.add_argument("--history", default="data/history.jsonl", help="Path to history.jsonl")
+    parser.add_argument("--qbank", default=DEFAULT_QBANK, help="Path to qbank.jsonl")
+    parser.add_argument("--history", default=DEFAULT_HISTORY, help="Path to history.jsonl")
     parser.add_argument("--mode", choices=["tutor", "timed"], default="tutor", help="Exam mode")
     parser.add_argument("--count", type=int, default=15, help="Number of questions in session")
 
     args = parser.parse_args()
     questions = load_qbank(args.qbank)
     if not questions:
-        print(f"No questions found in {args.qbank}. Please forge questions first.")
-        sys.exit(0)
+        # Provide rich demonstration questions so the TUI works out-of-the-box
+        questions = [
+            QBankQuestion(
+                id="demo_renal_001",
+                topic="Nephrology",
+                subtopic="Diuretic Pharmacology",
+                difficulty_hammer=3,
+                cognitive_level="2nd_order_application",
+                vignette="A 64-year-old male with a history of congestive heart failure (NYHA Class III) and chronic kidney disease (baseline creatinine 1.8 mg/dL) presents to the emergency department with worsening dyspnea, orthopnea, and 3+ bilateral lower extremity edema. Physical examination reveals jugular venous distension to the angle of the jaw and diffuse bilateral crackles in the lung bases. Vital signs: BP 154/92 mmHg, HR 98 bpm, RR 24/min, SpO2 89% on ambient air.",
+                lead_in="Which of the following pharmacotherapeutic interventions is the most appropriate next step in management?",
+                options={
+                    "A": "Intravenous Furosemide",
+                    "B": "Oral Hydrochlorothiazide",
+                    "C": "Oral Spironolactone",
+                    "D": "Intravenous Acetazolamide",
+                },
+                correct_key="A",
+                educational_objective="Intravenous loop diuretics (e.g., furosemide) are first-line for acute decompensated heart failure due to rapid venodilation and potent natriuresis via inhibition of the luminal Na+/K+/2Cl- cotransporter in the thick ascending limb.",
+                distractor_analysis={
+                    "A": "Correct: IV loop diuretics produce immediate pulmonary venodilation (within 5-15 minutes) followed by potent diuresis, effective even with reduced GFR.",
+                    "B": "Incorrect: Thiazides act on the distal convoluted tubule and are largely ineffective as monotherapy when GFR is significantly reduced; additionally, oral onset is too slow for acute pulmonary edema.",
+                    "C": "Incorrect: Aldosterone antagonists reduce long-term mortality in HFrEF but have a delayed clinical onset (days) and confer significant hyperkalemia risk in acute decompensation with CKD.",
+                    "D": "Incorrect: Acetazolamide inhibits carbonic anhydrase in the proximal tubule; it is a weak diuretic primarily used for metabolic alkalosis or altitude sickness, not acute pulmonary edema.",
+                },
+                refutational_hints={
+                    "B": "You selected (B) Hydrochlorothiazide. While thiazides are excellent first-line antihypertensives, oral administration is too slow for acute decompensation, and thiazides lose efficacy when GFR is below 30-40 mL/min.",
+                    "C": "You selected (C) Spironolactone. Spironolactone is a mainstay for long-term chronic HFrEF survival, but it has zero role in acute emergent volume unloading due to its delayed genomic mechanism of action.",
+                    "D": "You selected (D) Acetazolamide. Acetazolamide induces proximal bicarbonate wasting; its natriuretic potency is insufficient to treat acute cardiogenic pulmonary edema.",
+                },
+                comparison_table="| Diuretic Class | Nephron Segment | Molecular Target | Efficacy in Low GFR |\n|---|---|---|---|\n| Loop (Furosemide) | Thick Ascending Limb | Na+/K+/2Cl- (NKCC2) | High (preferred) |\n| Thiazide (HCTZ) | Distal Convoluted Tubule | Na+/Cl- (NCC) | Diminished |\n| K+-Sparing (Spironolactone) | Cortical Collecting Duct | Aldosterone Receptor | Risk of Hyperkalemia |",
+                source_ref={"source_file": "DEMO MODE (Ingest course PDFs into sources/ to build your bank)", "page": "1", "chunk_id": "demo_renal_ch4"},
+            ),
+            QBankQuestion(
+                id="demo_cardio_002",
+                topic="Cardiology",
+                subtopic="Ischemic Heart Disease",
+                difficulty_hammer=4,
+                cognitive_level="3rd_order_synthesis",
+                vignette="A 58-year-old female presents to the emergency room with severe retrosternal chest pressure radiating to her left jaw that began 75 minutes ago while shoveling snow. She has a history of type 2 diabetes mellitus. Initial ECG reveals 3 mm ST-segment elevations in leads II, III, and aVF with reciprocal ST depressions in I and aVL. The nearest primary percutaneous coronary intervention (PCI) facility is located 25 minutes away.",
+                lead_in="Which of the following is the most appropriate definitive reperfusion strategy?",
+                options={
+                    "A": "Transfer for primary percutaneous coronary intervention within 90-120 minutes",
+                    "B": "Immediate intravenous thrombolytic therapy with tenecteplase",
+                    "C": "Subcutaneous low-molecular-weight heparin with delayed elective angiography",
+                    "D": "Oral verapamil and sublingual nitroglycerin alone",
+                },
+                correct_key="A",
+                educational_objective="Primary PCI is the preferred reperfusion strategy for acute STEMI when door-to-balloon time can be achieved within 120 minutes of first medical contact.",
+                distractor_analysis={
+                    "A": "Correct: Since the PCI center is 25 minutes away, total ischemic time is well under the 120-minute guideline cutoff where PCI remains superior to fibrinolytics.",
+                    "B": "Incorrect: Fibrinolytic therapy is indicated only when anticipated delay to primary PCI exceeds 120 minutes from first medical contact.",
+                    "C": "Incorrect: Anticoagulation is adjunctive; definitive mechanical reperfusion cannot be delayed in acute STEMI.",
+                    "D": "Incorrect: Nitrates provide symptom relief but do not achieve coronary reperfusion.",
+                },
+                refutational_hints={
+                    "B": "You selected (B) Thrombolytic therapy. Although thrombolytics can be given quickly, guidelines dictate that if transfer to a PCI facility can be accomplished within 120 minutes, primary PCI produces significantly lower rates of re-infarction, stroke, and mortality.",
+                },
+                comparison_table="| Modality | Door-to-Action Target | Key Indication | Major Hazard |\n|---|---|---|---|\n| Primary PCI | < 90-120 min | First-line STEMI | Vascular access complication |\n| Fibrinolysis | < 30 min (door-to-needle) | STEMI when PCI > 120 min | Intracranial hemorrhage |",
+                source_ref={"source_file": "DEMO MODE (Ingest course PDFs into sources/ to build your bank)", "page": "1", "chunk_id": "demo_stemi_reperfusion"},
+            ),
+        ]
 
     app = TutorTUIApp(
         questions=questions[:args.count],
@@ -531,3 +602,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -4,19 +4,32 @@ anki_bridge.py - Flashcard exporter and AnkiConnect sync bridge for PDF-School.
 Supports direct AnkiConnect live sync and fallback TSV export.
 """
 
+import os
+import sys
+from pathlib import Path
+
+# Automatically use local virtualenv interpreter if invoked with system python
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_venv_python = PROJECT_ROOT / ".venv" / "bin" / "python"
+if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
+    os.execv(str(_venv_python), [str(_venv_python)] + sys.argv)
+
+
 import argparse
 import html
 import json
-import sys
 import urllib.error
 import urllib.request
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from rich.console import Console
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(PROJECT_ROOT))
 from tools.schemas import QBankQuestion
+
+DEFAULT_QBANK = str(PROJECT_ROOT / "data" / "qbank.jsonl")
+DEFAULT_TSV = str(PROJECT_ROOT / "data" / "anki_cards.tsv")
+
 
 console = Console()
 

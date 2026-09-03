@@ -5,12 +5,21 @@ Supports Tutor Mode, Timed Block Mode, Metacognitive Calibration,
 Refutational Feedback, Source Peek, and Tri-Partite Error Logging.
 """
 
+import os
+import sys
+from pathlib import Path
+
+# Automatically use local virtualenv interpreter if invoked with system python
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_venv_python = PROJECT_ROOT / ".venv" / "bin" / "python"
+if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
+    os.execv(str(_venv_python), [str(_venv_python)] + sys.argv)
+
+
 import argparse
 import json
-import sys
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 from rich.console import Console
@@ -19,8 +28,12 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.table import Table
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(PROJECT_ROOT))
 from tools.schemas import HistoryRecord, QBankQuestion
+
+DEFAULT_QBANK = str(PROJECT_ROOT / "data" / "qbank.jsonl")
+DEFAULT_HISTORY = str(PROJECT_ROOT / "data" / "history.jsonl")
+
 
 
 console = Console()
@@ -228,8 +241,8 @@ def run_question_session(
 
 def main():
     parser = argparse.ArgumentParser(description="PDF-School Terminal Examination Runner")
-    parser.add_argument("--qbank", default="data/qbank.jsonl", help="Question bank JSONL file")
-    parser.add_argument("--history", default="data/history.jsonl", help="History telemetry file")
+    parser.add_argument("--qbank", default=DEFAULT_QBANK, help="Question bank JSONL file")
+    parser.add_argument("--history", default=DEFAULT_HISTORY, help="History telemetry file")
     parser.add_argument("--topic", help="Filter by topic")
     parser.add_argument("--count", type=int, default=10, help="Maximum number of questions to test")
     parser.add_argument("--mode", choices=["tutor", "timed"], default="tutor", help="Examination mode")

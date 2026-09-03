@@ -5,19 +5,29 @@ Connects to Gemini, OpenAI, Anthropic, OpenRouter, Groq, or local Ollama
 using pure HTTP requests. Zero heavy vendor SDKs required.
 """
 
-import json
 import os
-import re
 import sys
 from pathlib import Path
+
+# Automatically use local virtualenv interpreter if invoked with system python
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_venv_python = PROJECT_ROOT / ".venv" / "bin" / "python"
+if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
+    os.execv(str(_venv_python), [str(_venv_python)] + sys.argv)
+
+
+import json
+import re
 from typing import Any, Dict, Optional, Tuple
 
 import requests
 from dotenv import load_dotenv
 from rich.console import Console
 
-# Load .env if present
+# Load .env if present from project root
+load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv()
+
 
 console = Console()
 

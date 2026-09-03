@@ -4,11 +4,20 @@ profile_exam.py - Analyzes past exams, quizzes, or professor sample questions
 to synthesize an ExamStyleProfile for Track A question forging.
 """
 
+import os
+import sys
+from pathlib import Path
+
+# Automatically use local virtualenv interpreter if invoked with system python
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_venv_python = PROJECT_ROOT / ".venv" / "bin" / "python"
+if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
+    os.execv(str(_venv_python), [str(_venv_python)] + sys.argv)
+
+
 import argparse
 import json
 import re
-import sys
-from pathlib import Path
 from typing import Dict, List, Optional
 
 import pymupdf
@@ -16,8 +25,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(PROJECT_ROOT))
 from tools.schemas import ExamStyleProfile
+
 
 
 console = Console()
