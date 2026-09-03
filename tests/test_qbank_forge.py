@@ -62,3 +62,54 @@ def test_append_to_qbank(tmp_path):
     # Second insert of same ID should be skipped
     res_duplicate = append_to_qbank(q, str(qbank_file))
     assert res_duplicate is False
+
+
+from unittest.mock import patch
+import json
+
+
+def test_auto_forge_questions(tmp_path):
+    chunks_file = tmp_path / "chunks.jsonl"
+    qbank_file = tmp_path / "qbank.jsonl"
+
+    chunk = ContentChunk(
+        chunk_id="chunk_test",
+        source_file="sources/test.pdf",
+        page_start=1,
+        page_end=1,
+        text="Amiodarone is a class III antiarrhythmic...",
+    )
+    chunks_file.write_text(json.dumps(chunk.model_dump()) + "\n", encoding="utf-8")
+
+    mock_response = {
+        "id": "q_amio_01",
+        "topic": "Cardiology",
+        "subtopic": "Antiarrhythmics",
+        "source_ref": {"chunk_id": "chunk_test", "source_file": "sources/test.pdf", "page": "1"},
+        "difficulty_hammer": 3,
+        "cognitive_level": "2nd_order_application",
+        "figures": [],
+        "vignette": "A 58-year-old male on chronic antiarrhythmic therapy develops pulmonary fibrosis...",
+        "lead_in": "Which medication is most likely responsible?",
+        "options": {"A": "Amiodarone", "B": "Flecainide", "C": "Metoprolol", "D": "Diltiazem"},
+        "correct_key": "A",
+        "educational_objective": "Amiodarone causes pulmonary toxicity characterized by pulmonary fibrosis.",
+        "distractor_analysis": {
+            "A": "Correct: Causes pulmonary fibrosis.",
+            "B": "Incorrect: Class IC proarrhythmic.",
+            "C": "Incorrect: Beta-blocker.",
+            "D": "Incorrect: Calcium channel blocker.",
+        },
+    }
+
+    with patch("tools.qbank_forge.generate_structured_json", return_value=mock_response):
+        from tools.qbank_forge import auto_forge_questions
+        success = auto_forge_questions(
+            chunk_file=str(chunks_file),
+            count=1,
+            profile_path=str(tmp_path / "nonexistent.json"),
+            qbank_path=str(qbank_file),
+        )
+        assert success == 1
+        assert qbank_file.exists()
+

@@ -177,9 +177,79 @@ def append_to_qbank(question: QBankQuestion, qbank_path: str = "data/qbank.jsonl
     return True
 
 
+from tools.llm_client import generate_structured_json
+
+
+def auto_forge_questions(
+    chunk_file: str,
+    count: int = 5,
+    profile_path: str = "data/exam_style.json",
+    qbank_path: str = "data/qbank.jsonl",
+    allow_flaws: bool = False,
+) -> int:
+    chunk_p = Path(chunk_file)
+    if not chunk_p.exists():
+        console.print(f"[red]Error: Chunk file '{chunk_file}' not found.[/red]")
+        return 0
+
+    with open(chunk_p, "r", encoding="utf-8") as f:
+        chunks_data = [json.loads(line) for line in f if line.strip()]
+
+    if not chunks_data:
+        console.print(f"[yellow]No chunks found in '{chunk_file}'.[/yellow]")
+        return 0
+
+    style_profile = None
+    prof_p = Path(profile_path)
+    if prof_p.exists():
+        with open(prof_p, "r", encoding="utf-8") as f:
+            style_profile = ExamStyleProfile(**json.load(f))
+            console.print(f"[green]✔ Active Style Profile loaded: {style_profile.style_name} (Track A)[/green]")
+    else:
+        console.print("[blue]ℹ No exam profile found. Using Track B (Pedagogical Mastery Mode)[/blue]")
+
+    success_count = 0
+    total_to_forge = min(count, len(chunks_data))
+
+    for idx in range(total_to_forge):
+        chunk = ContentChunk(**chunks_data[idx])
+        console.print(f"\n[bold cyan]Forging question {idx + 1}/{total_to_forge}...[/bold cyan] ([dim]{chunk.chunk_id}[/dim])")
+
+        prompt = build_forge_prompt(chunk, style_profile)
+        system_prompt = "You are an elite academic and medical test constructor. Always output strictly valid JSON adhering to the provided schema with no markdown explanations outside the JSON."
+
+        try:
+            q_dict = generate_structured_json(system_prompt, prompt)
+            question = QBankQuestion(**q_dict)
+
+            flaws = validate_question_flaws(q_dict, allow_negative=(style_profile and style_profile.allows_negative_stems))
+            if flaws:
+                console.print("[yellow]⚠️ Flaws detected:[/yellow] " + ", ".join(flaws))
+                if not allow_flaws:
+                    console.print("[red]Skipping question due to item flaws.[/red]")
+                    continue
+
+            if append_to_qbank(question, qbank_path):
+                console.print(f"[green]✅ Forged and saved: {question.id} ('{question.lead_in[:50]}...')[/green]")
+                success_count += 1
+
+        except Exception as e:
+            console.print(f"[red]❌ Forging failed for chunk {chunk.chunk_id}: {e}[/red]")
+
+    return success_count
+
+
 def main():
     parser = argparse.ArgumentParser(description="Forge, validate, and manage PDF-School question banks")
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # Auto-forge subcommand
+    p_auto = subparsers.add_parser("auto-forge", help="Automatically generate questions using the active LLM backend")
+    p_auto.add_argument("--chunk-file", required=True, help="Path to chunk JSONL file")
+    p_auto.add_argument("--count", type=int, default=5, help="Number of questions to forge")
+    p_auto.add_argument("--profile", default="data/exam_style.json", help="Path to exam style profile")
+    p_auto.add_argument("--qbank", default="data/qbank.jsonl", help="Target qbank.jsonl path")
+    p_auto.add_argument("--allow-flaws", action="store_true", help="Allow ingestion despite NBME item flaws")
 
     # Prompt builder subcommand
     p_prompt = subparsers.add_parser("build-prompt", help="Generate forging prompt for a chunk")
@@ -195,7 +265,17 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == "build-prompt":
+    if args.command == "auto-forge":
+        count = auto_forge_questions(
+            chunk_file=args.chunk_file,
+            count=args.count,
+            profile_path=args.profile,
+            qbank_path=args.qbank,
+            allow_flaws=args.allow_flaws,
+        )
+        console.print(f"\n[bold green]🎉 Auto-forge completed: {count} questions added to {args.qbank}[/bold green]")
+
+    elif args.command == "build-prompt":
         chunk_path = Path(args.chunk_file)
         if not chunk_path.exists():
             console.print(f"[red]Error: Chunk file '{args.chunk_file}' not found.[/red]")
@@ -257,3 +337,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
