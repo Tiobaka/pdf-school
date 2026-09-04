@@ -20,12 +20,10 @@ if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
 import argparse
 import json
 import time
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import (
     Button,
@@ -33,10 +31,6 @@ from textual.widgets import (
     Header,
     Label,
     Markdown,
-    OptionList,
-    ProgressBar,
-    RadioButton,
-    RadioSet,
     Static,
     TabbedContent,
     TabPane,
@@ -63,14 +57,13 @@ DEFAULT_QBANK = str(PROJECT_ROOT / "data" / "qbank.jsonl")
 DEFAULT_HISTORY = str(PROJECT_ROOT / "data" / "history.jsonl")
 
 
-
 def load_saved_theme() -> str:
     if CONFIG_PATH.exists():
         try:
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            with open(CONFIG_PATH, encoding="utf-8") as f:
                 data = json.load(f)
                 theme = data.get("theme")
-                if theme in AVAILABLE_THEMES:
+                if isinstance(theme, str) and theme in AVAILABLE_THEMES:
                     return theme
         except Exception:
             pass
@@ -82,7 +75,7 @@ def save_theme(theme_name: str):
     current_data = {}
     if CONFIG_PATH.exists():
         try:
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            with open(CONFIG_PATH, encoding="utf-8") as f:
                 current_data = json.load(f)
         except Exception:
             current_data = {}
@@ -130,12 +123,31 @@ class ConfidenceModal(ModalScreen[str]):
         width: 100%;
     }
     """
+
     def compose(self) -> ComposeResult:
         with Vertical(id="conf-dialog"):
-            yield Label("⚖️ [bold]Metacognitive Calibration[/bold]\nHow confident are you in this answer?", classes="modal-title")
-            yield Button("[1] Certain (High Confidence)", id="conf-certain", variant="success", classes="modal-btn")
-            yield Button("[2] Educated Guess (Moderate)", id="conf-educated_guess", variant="primary", classes="modal-btn")
-            yield Button("[3] Blind Guess (Low Confidence)", id="conf-blind_guess", variant="warning", classes="modal-btn")
+            yield Label(
+                "⚖️ [bold]Metacognitive Calibration[/bold]\nHow confident are you in this answer?",
+                classes="modal-title",
+            )
+            yield Button(
+                "[1] Certain (High Confidence)",
+                id="conf-certain",
+                variant="success",
+                classes="modal-btn",
+            )
+            yield Button(
+                "[2] Educated Guess (Moderate)",
+                id="conf-educated_guess",
+                variant="primary",
+                classes="modal-btn",
+            )
+            yield Button(
+                "[3] Blind Guess (Low Confidence)",
+                id="conf-blind_guess",
+                variant="warning",
+                classes="modal-btn",
+            )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id or ""
@@ -160,12 +172,31 @@ class ErrorCategoryModal(ModalScreen[str]):
         width: 100%;
     }
     """
+
     def compose(self) -> ComposeResult:
         with Vertical(id="err-dialog"):
-            yield Label("🔍 [bold red]Tri-Partite Error Triage[/bold red]\nWhat best describes why this question was missed?", classes="modal-title")
-            yield Button("Knowledge Gap (Didn't know core concept/fact)", id="err-knowledge_gap", variant="primary", classes="modal-btn")
-            yield Button("Misconception (Held incorrect rule or mechanism)", id="err-misconception", variant="warning", classes="modal-btn")
-            yield Button("Execution Error (Misread stem or misclick)", id="err-execution_error", variant="default", classes="modal-btn")
+            yield Label(
+                "🔍 [bold red]Tri-Partite Error Triage[/bold red]\nWhat best describes why this question was missed?",
+                classes="modal-title",
+            )
+            yield Button(
+                "Knowledge Gap (Didn't know core concept/fact)",
+                id="err-knowledge_gap",
+                variant="primary",
+                classes="modal-btn",
+            )
+            yield Button(
+                "Misconception (Held incorrect rule or mechanism)",
+                id="err-misconception",
+                variant="warning",
+                classes="modal-btn",
+            )
+            yield Button(
+                "Execution Error (Misread stem or misclick)",
+                id="err-execution_error",
+                variant="default",
+                classes="modal-btn",
+            )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id or ""
@@ -174,7 +205,6 @@ class ErrorCategoryModal(ModalScreen[str]):
 
 
 class TutorTUIApp(App):
-
     CSS = """
     Screen {
         layout: vertical;
@@ -280,10 +310,10 @@ class TutorTUIApp(App):
         Binding("p", "prev_question", "Prev"),
         Binding("v", "toggle_source", "Source"),
         Binding("l", "toggle_labs", "Labs"),
+        Binding("r", "toggle_roadmap", "Roadmap"),
         Binding("f", "flag_question", "Flag"),
         Binding("x", "eliminate_choice", "Eliminate"),
         Binding("1", "select_opt('A')", "A", show=False),
-
         Binding("2", "select_opt('B')", "B", show=False),
         Binding("3", "select_opt('C')", "C", show=False),
         Binding("4", "select_opt('D')", "D", show=False),
@@ -298,7 +328,7 @@ class TutorTUIApp(App):
 
     def __init__(
         self,
-        questions: List[QBankQuestion],
+        questions: list[QBankQuestion],
         mode: str = "tutor",
         history_path: str = "data/history.jsonl",
         **kwargs,
@@ -308,12 +338,13 @@ class TutorTUIApp(App):
         self.mode = mode
         self.history_path = history_path
         self.current_idx = 0
-        self.user_answers: Dict[int, str] = {}
-        self.submitted: Dict[int, bool] = {}
-        self.eliminated_options: Dict[int, Set[str]] = {i: set() for i in range(len(questions))}
-        self.flagged: Set[int] = set()
-        self.start_times: Dict[int, float] = {0: time.time()}
-        self.confidence_ratings: Dict[int, str] = {}
+        self.user_answers: dict[int, str] = {}
+        self.submitted: dict[int, bool] = {}
+        self.eliminated_options: dict[int, set[str]] = {i: set() for i in range(len(questions))}
+        self.flagged: set[int] = set()
+        self.start_times: dict[int, float] = {0: time.time()}
+        self.confidence_ratings: dict[int, str] = {}
+        self.first_answers: dict[int, str] = {}
         self.current_theme_idx = 0
 
     def on_mount(self):
@@ -364,7 +395,10 @@ class TutorTUIApp(App):
                 with TabbedContent(id="tabs-view"):
                     with TabPane("Breakdown", id="tab-breakdown"):
                         with VerticalScroll():
-                            yield Markdown("Submit your answer to view the pedagogical breakdown.", id="breakdown-md")
+                            yield Markdown(
+                                "Submit your answer to view the pedagogical breakdown.",
+                                id="breakdown-md",
+                            )
                     with TabPane("Source Peek", id="tab-source"):
                         with VerticalScroll():
                             yield Markdown("", id="source-md")
@@ -374,6 +408,9 @@ class TutorTUIApp(App):
                     with TabPane("Navigator", id="tab-nav"):
                         with VerticalScroll():
                             yield Static("Question Overview", id="nav-summary")
+                    with TabPane("Roadmap", id="tab-roadmap"):
+                        with VerticalScroll():
+                            yield Markdown("", id="roadmap-md")
 
         yield Footer()
 
@@ -394,7 +431,9 @@ class TutorTUIApp(App):
             self.start_times[self.current_idx] = time.time()
 
         # Update Header
-        self.query_one("#q-counter-pill", Label).update(f"Question {self.current_idx + 1} of {len(self.questions)}")
+        self.query_one("#q-counter-pill", Label).update(
+            f"Question {self.current_idx + 1} of {len(self.questions)}"
+        )
         topic_text = f" [{q.topic} - {q.subtopic or 'General'}] {'🔨' * q.difficulty_hammer}"
         self.query_one("#q-topic-badge", Label).update(topic_text)
 
@@ -439,7 +478,6 @@ class TutorTUIApp(App):
             else:
                 btn.display = False
 
-
         # Update Source Tab Content
         src_ref = q.source_ref
         src_md = f"### 📖 Source Provenance\n- **Document:** `{src_ref.get('source_file', 'N/A')}`\n- **Page/Slide:** {src_ref.get('page', 'N/A')}\n- **Chunk ID:** `{src_ref.get('chunk_id', 'N/A')}`\n\n*(Press `v` anytime to review this tab)*"
@@ -450,7 +488,9 @@ class TutorTUIApp(App):
         if is_submitted:
             self.render_breakdown_markdown(q, chosen, breakdown_widget)
         else:
-            breakdown_widget.update("*(Select your choice and press Submit to view the educational objective, refutational feedback, and contrasting differential matrix)*")
+            breakdown_widget.update(
+                "*(Select your choice and press Submit to view the educational objective, refutational feedback, and contrasting differential matrix)*"
+            )
 
         # Update Navigator
         nav_summary = "### 📋 Question Navigator\n"
@@ -462,12 +502,45 @@ class TutorTUIApp(App):
             if i in self.flagged:
                 status += " 🚩"
             cursor = "👉 " if i == self.current_idx else "   "
-            nav_summary += f"{cursor}**Q{i+1}:** {status} ({ques.topic})\n"
+            nav_summary += f"{cursor} Q{i + 1}: {status}\n"
         self.query_one("#nav-summary", Static).update(nav_summary)
 
-    def render_breakdown_markdown(self, q: QBankQuestion, chosen: Optional[str], widget: Markdown):
-        is_correct = (chosen == q.correct_key)
-        banner = "## ✅ CORRECT!" if is_correct else f"## ❌ INCORRECT (You selected {chosen}, Correct is {q.correct_key})"
+        # Update Roadmap Tab
+        roadmap_p = PROJECT_ROOT / "data" / "roadmap.json"
+        if roadmap_p.exists():
+            try:
+                from datetime import date
+
+                from tools.roadmap import (
+                    get_actual_vignettes_completed_by_date,
+                    get_day_info,
+                    load_roadmap,
+                )
+
+                rm = load_roadmap(roadmap_p)
+                cur_d = date.today().isoformat()
+                day_d = get_day_info(rm, cur_d)
+                h_counts = get_actual_vignettes_completed_by_date()
+                if day_d:
+                    d_num = day_d.get("day_num", "?")
+                    mod = day_d.get("module", "General")
+                    top = day_d.get("topic", "")
+                    tgt = day_d.get("target_vignettes", 0)
+                    act = h_counts.get(cur_d, 0)
+                    chk = day_d.get("milestone_checkpoint", "")
+                    tsks = "\n".join([f"- {t}" for t in day_d.get("tasks", [])])
+                    rm_md = f"### 📚 Curricular Roadmap ({cur_d})\n**Phase {day_d.get('phase', 1)} | Day {d_num} of 35**\n\n- **Module:** `{mod}`\n- **Topic:** {top}\n- **Daily Goal:** `{act} / {tgt} completed`\n\n#### 🎯 Milestone Checkpoint:\n> {chk}\n\n#### 📋 Scheduled Tasks:\n{tsks}\n"
+                    self.query_one("#roadmap-md", Markdown).update(rm_md)
+            except Exception:
+                pass
+
+    def render_breakdown_markdown(self, q: QBankQuestion, chosen: str | None, widget: Markdown):
+        is_correct = chosen == q.correct_key
+        banner = (
+            "## ✅ CORRECT!"
+            if is_correct
+            else f"## ❌ INCORRECT (You selected {chosen}, Correct is {q.correct_key})"
+        )
 
         refutation_block = ""
         if not is_correct and chosen and chosen in q.refutational_hints:
@@ -483,9 +556,19 @@ class TutorTUIApp(App):
         if q.comparison_table:
             comp_table_block = f"\n### ⚖️ Differential Comparison Table\n{q.comparison_table}\n"
 
-        objective_block = f"\n### 🎯 Educational Objective (Takeaway Anchor)\n**{q.educational_objective}**\n"
+        objective_block = (
+            f"\n### 🎯 Educational Objective (Takeaway Anchor)\n**{q.educational_objective}**\n"
+        )
 
-        full_md = f"{banner}\n{objective_block}{refutation_block}{distractor_block}{comp_table_block}"
+        correct_ans_text = q.options.get(q.correct_key, "")
+        anki_card_block = (
+            f"\n### 🎴 Atomic Anki Cloze Card\n"
+            f"> `{q.topic} - {q.subtopic or 'General'}`\n>\n"
+            f"> **Regla:** {q.educational_objective}\n>\n"
+            f"> **Respuesta Clave:** `{{{{c1::{correct_ans_text}}}}}`\n"
+        )
+
+        full_md = f"{banner}\n{objective_block}{refutation_block}{distractor_block}{comp_table_block}{anki_card_block}"
         widget.update(full_md)
 
     def action_select_opt(self, key: str):
@@ -514,22 +597,25 @@ class TutorTUIApp(App):
             self._finalize_submission("educated_guess", None)
             return
 
-        def on_confidence(conf: Optional[str]):
+        def on_confidence(conf: str | None):
             confidence = conf or "educated_guess"
             q = self.questions[self.current_idx]
-            is_correct = (chosen == q.correct_key)
+            is_correct = chosen == q.correct_key
             if not is_correct and self.mode == "tutor":
-                self.push_screen(ErrorCategoryModal(), lambda cat: self._finalize_submission(confidence, cat or "knowledge_gap"))
+                self.push_screen(
+                    ErrorCategoryModal(),
+                    lambda cat: self._finalize_submission(confidence, cat or "knowledge_gap"),
+                )
             else:
                 self._finalize_submission(confidence, None)
 
         self.push_screen(ConfidenceModal(), on_confidence)
 
-    def _finalize_submission(self, confidence: str, error_category: Optional[str] = None):
+    def _finalize_submission(self, confidence: str, error_category: str | None = None):
         self.submitted[self.current_idx] = True
         q = self.questions[self.current_idx]
         chosen = self.user_answers.get(self.current_idx)
-        is_correct = (chosen == q.correct_key)
+        is_correct = chosen == q.correct_key
 
         first_chosen = getattr(self, "first_answers", {}).get(self.current_idx, chosen)
         switched = bool(first_chosen and first_chosen != chosen)
@@ -549,7 +635,6 @@ class TutorTUIApp(App):
         )
         log_history(record, self.history_path)
 
-
         self.refresh_question_view()
         # Switch tab to breakdown automatically
         tabs = self.query_one("#tabs-view", TabbedContent)
@@ -563,10 +648,10 @@ class TutorTUIApp(App):
     def on_unmount(self) -> None:
         try:
             from tools.study_db import sync_db
+
             sync_db(history_path=Path(self.history_path))
         except Exception:
             pass
-
 
     def action_eliminate_choice(self):
         chosen = self.user_answers.get(self.current_idx)
@@ -602,6 +687,10 @@ class TutorTUIApp(App):
         tabs = self.query_one("#tabs-view", TabbedContent)
         tabs.active = "tab-labs"
 
+    def action_toggle_roadmap(self):
+        tabs = self.query_one("#tabs-view", TabbedContent)
+        tabs.active = "tab-roadmap"
+
     def action_flag_question(self):
         if self.current_idx in self.flagged:
             self.flagged.remove(self.current_idx)
@@ -628,20 +717,28 @@ class TutorTUIApp(App):
             self.action_select_opt(opt_key)
 
 
-
 def main():
-    parser = argparse.ArgumentParser(description="PDF-School Visual Terminal Examination Suite (Textual TUI)")
+    parser = argparse.ArgumentParser(
+        description="PDF-School Visual Terminal Examination Suite (Textual TUI)"
+    )
     parser.add_argument("--qbank", default=DEFAULT_QBANK, help="Path to qbank.jsonl")
     parser.add_argument("--history", default=DEFAULT_HISTORY, help="Path to history.jsonl")
     parser.add_argument("--mode", choices=["tutor", "timed"], default="tutor", help="Exam mode")
     parser.add_argument("--count", type=int, default=15, help="Number of questions in session")
     parser.add_argument("--topic", help="Filter by topic")
-    parser.add_argument("--adaptive", "--weakness", dest="adaptive", action="store_true", help="Adaptive weakness remediation mode")
+    parser.add_argument(
+        "--adaptive",
+        "--weakness",
+        dest="adaptive",
+        action="store_true",
+        help="Adaptive weakness remediation mode",
+    )
 
     args = parser.parse_args()
 
     if args.adaptive:
         from tools.study_db import get_weakness_queue
+
         questions = get_weakness_queue(
             qbank_path=Path(args.qbank),
             history_path=Path(args.history),
@@ -658,7 +755,6 @@ def main():
             questions = [q for q in questions if args.topic.lower() in q.topic.lower()]
 
     if not questions:
-
         # Provide rich demonstration questions so the TUI works out-of-the-box
         questions = [
             QBankQuestion(
@@ -689,7 +785,11 @@ def main():
                     "D": "You selected (D) Acetazolamide. Acetazolamide induces proximal bicarbonate wasting; its natriuretic potency is insufficient to treat acute cardiogenic pulmonary edema.",
                 },
                 comparison_table="| Diuretic Class | Nephron Segment | Molecular Target | Efficacy in Low GFR |\n|---|---|---|---|\n| Loop (Furosemide) | Thick Ascending Limb | Na+/K+/2Cl- (NKCC2) | High (preferred) |\n| Thiazide (HCTZ) | Distal Convoluted Tubule | Na+/Cl- (NCC) | Diminished |\n| K+-Sparing (Spironolactone) | Cortical Collecting Duct | Aldosterone Receptor | Risk of Hyperkalemia |",
-                source_ref={"source_file": "DEMO MODE (Ingest course PDFs into sources/ to build your bank)", "page": "1", "chunk_id": "demo_renal_ch4"},
+                source_ref={
+                    "source_file": "DEMO MODE (Ingest course PDFs into sources/ to build your bank)",
+                    "page": "1",
+                    "chunk_id": "demo_renal_ch4",
+                },
             ),
             QBankQuestion(
                 id="demo_cardio_002",
@@ -717,12 +817,16 @@ def main():
                     "B": "You selected (B) Thrombolytic therapy. Although thrombolytics can be given quickly, guidelines dictate that if transfer to a PCI facility can be accomplished within 120 minutes, primary PCI produces significantly lower rates of re-infarction, stroke, and mortality.",
                 },
                 comparison_table="| Modality | Door-to-Action Target | Key Indication | Major Hazard |\n|---|---|---|---|\n| Primary PCI | < 90-120 min | First-line STEMI | Vascular access complication |\n| Fibrinolysis | < 30 min (door-to-needle) | STEMI when PCI > 120 min | Intracranial hemorrhage |",
-                source_ref={"source_file": "DEMO MODE (Ingest course PDFs into sources/ to build your bank)", "page": "1", "chunk_id": "demo_stemi_reperfusion"},
+                source_ref={
+                    "source_file": "DEMO MODE (Ingest course PDFs into sources/ to build your bank)",
+                    "page": "1",
+                    "chunk_id": "demo_stemi_reperfusion",
+                },
             ),
         ]
 
     app = TutorTUIApp(
-        questions=questions[:args.count],
+        questions=questions[: args.count],
         mode=args.mode,
         history_path=args.history,
     )
@@ -731,4 +835,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

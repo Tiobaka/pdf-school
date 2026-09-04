@@ -1,8 +1,6 @@
 import json
-import sqlite3
-from pathlib import Path
-from tools.schemas import HistoryRecord, QBankQuestion
-from tools.study_db import (
+
+from pdf_school.bridges.study_db import (
     display_reports,
     get_calibration_report,
     get_db_connection,
@@ -10,9 +8,9 @@ from tools.study_db import (
     get_mastery_report,
     get_time_analysis,
     get_weakness_queue,
-    init_db,
     sync_db,
 )
+from pdf_school.schemas import HistoryRecord, QBankQuestion
 
 
 def create_sample_dataset(tmp_path):
@@ -102,7 +100,8 @@ def test_study_db_sync_idempotency_and_soft_delete(tmp_path):
     assert len(h_rows) == 2
 
     # Test soft-delete: remove q2 from qbank.jsonl and force sync
-    q1_only = [json.loads(line) for line in open(qbank_path) if "q_renal_01" in line]
+    with open(qbank_path, encoding="utf-8") as f:
+        q1_only = [json.loads(line) for line in f if "q_renal_01" in line]
     with open(qbank_path, "w", encoding="utf-8") as f:
         for q in q1_only:
             f.write(json.dumps(q) + "\n")
@@ -189,4 +188,14 @@ def test_study_db_resilience_to_missing_and_corrupt_files(tmp_path):
     # Display reports on empty db should not throw
     conn = get_db_connection(db_path)
     display_reports(conn)
+    conn.close()
+
+
+def test_display_reports_with_data(tmp_path):
+    db_path, qbank_path, history_path = create_sample_dataset(tmp_path)
+    sync_db(db_path, qbank_path, history_path)
+    conn = get_db_connection(db_path)
+    # Ensure all tables render without exceptions
+    display_reports(conn, topic="Renal")
+    display_reports(conn, topic=None)
     conn.close()

@@ -20,15 +20,14 @@ import argparse
 import json
 import sqlite3
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
 sys.path.insert(0, str(PROJECT_ROOT))
-from tools.schemas import DailySchedule, HistoryRecord, QBankQuestion
 from tools.scheduler import compute_question_fsrs_states
+from tools.schemas import HistoryRecord, QBankQuestion
 
 console = Console()
 
@@ -67,9 +66,15 @@ def init_db(conn: sqlite3.Connection) -> None:
             synced_at TEXT NOT NULL
         );
         """)
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_questions_topic_subtopic ON questions (topic, subtopic);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions (difficulty_hammer);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_questions_cognitive ON questions (cognitive_level);")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_questions_topic_subtopic ON questions (topic, subtopic);"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions (difficulty_hammer);"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_questions_cognitive ON questions (cognitive_level);"
+        )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_questions_active ON questions (is_active);")
 
         # 2. History table (denormalized topic & subtopic for fast analytical rollups)
@@ -92,11 +97,19 @@ def init_db(conn: sqlite3.Connection) -> None:
             user_note TEXT
         );
         """)
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_history_q_time ON history (question_id, timestamp DESC);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_history_topic_correct ON history (topic, is_correct);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_history_calib ON history (confidence_rating, is_correct);")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_history_q_time ON history (question_id, timestamp DESC);"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_history_topic_correct ON history (topic, is_correct);"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_history_calib ON history (confidence_rating, is_correct);"
+        )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_history_time ON history (timestamp DESC);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_history_errors ON history (error_category) WHERE is_correct = 0;")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_history_errors ON history (error_category) WHERE is_correct = 0;"
+        )
 
         # 3. FSRS Memory Mirror table
         conn.execute("""
@@ -159,7 +172,7 @@ def sync_db(
     qbank_path: Path = DEFAULT_QBANK,
     history_path: Path = DEFAULT_HISTORY,
     force: bool = False,
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """
     Idempotent, atomic synchronization from JSONL files into the SQLite mirror.
     Returns counts of questions and history records synced.
@@ -177,11 +190,11 @@ def sync_db(
             return counts
 
         with conn:
-            topic_map: Dict[str, Tuple[str, Optional[str]]] = {}
+            topic_map: dict[str, tuple[str, str | None]] = {}
 
             # 1. Sync Questions
             if qbank_needs_sync and qbank_path.exists():
-                with open(qbank_path, "r", encoding="utf-8") as f:
+                with open(qbank_path, encoding="utf-8") as f:
                     for line in f:
                         line = line.strip()
                         if not line:
@@ -245,7 +258,7 @@ def sync_db(
 
             # 2. Sync History
             if history_needs_sync and history_path.exists():
-                with open(history_path, "r", encoding="utf-8") as f:
+                with open(history_path, encoding="utf-8") as f:
                     for line in f:
                         line = line.strip()
                         if not line:
@@ -307,7 +320,14 @@ def sync_db(
                             state = excluded.state,
                             last_review = excluded.last_review
                         """,
-                        (q_id, due_iso, card.stability, card.difficulty, int(card.state), last_rev_iso),
+                        (
+                            q_id,
+                            due_iso,
+                            card.stability,
+                            card.difficulty,
+                            int(card.state),
+                            last_rev_iso,
+                        ),
                     )
                     counts["fsrs"] += 1
 
@@ -321,8 +341,8 @@ def get_weakness_queue(
     qbank_path: Path = DEFAULT_QBANK,
     history_path: Path = DEFAULT_HISTORY,
     limit: int = 15,
-    topic: Optional[str] = None,
-) -> List[QBankQuestion]:
+    topic: str | None = None,
+) -> list[QBankQuestion]:
     """
     Generates an adaptive remediation block targeting:
       1. Entrenched misconceptions & high-confidence failures (Dunning-Kruger blunders)
@@ -336,7 +356,7 @@ def get_weakness_queue(
     try:
         query = """
         WITH latest_attempt AS (
-            SELECT 
+            SELECT
                 question_id,
                 is_correct,
                 confidence_rating,
@@ -346,17 +366,17 @@ def get_weakness_queue(
             FROM history
         ),
         topic_stats AS (
-            SELECT 
+            SELECT
                 topic,
                 COALESCE(AVG(is_correct), 0.5) as topic_accuracy
             FROM history
             GROUP BY topic
         )
-        SELECT 
+        SELECT
             q.id,
             q.raw_json,
             (
-                CASE 
+                CASE
                     -- Tier 1: Entrenched Misconception or High-Confidence Failure
                     WHEN la.is_correct = 0 AND (la.error_category = 'misconception' OR la.confidence_rating = 'certain') THEN 1000
                     -- Tier 2: Recent Knowledge Gap or Lapsed Question
@@ -372,7 +392,7 @@ def get_weakness_queue(
                     -- Tier 7: Unseen Question in an Average Topic
                     WHEN la.is_correct IS NULL THEN 100
                     ELSE 10
-                END 
+                END
                 + (1.0 - COALESCE(ts.topic_accuracy, 0.5)) * 100.0
             ) as weakness_score
         FROM questions q
@@ -382,7 +402,7 @@ def get_weakness_queue(
         WHERE q.is_active = 1
           AND (:topic IS NULL OR lower(q.topic) LIKE '%' || lower(:topic) || '%')
           AND (
-              la.is_correct = 0 
+              la.is_correct = 0
               OR (la.is_correct = 1 AND la.confidence_rating = 'blind_guess')
               OR (f.due IS NOT NULL AND datetime(f.due) <= datetime('now'))
               OR (la.is_correct IS NULL)
@@ -411,10 +431,11 @@ def get_weakness_queue(
 # Analytical Reporting Queries
 # =====================================================================
 
-def get_mastery_report(conn: sqlite3.Connection, topic: Optional[str] = None) -> List[Dict[str, Any]]:
+
+def get_mastery_report(conn: sqlite3.Connection, topic: str | None = None) -> list[dict[str, Any]]:
     query = """
     WITH latest_attempts AS (
-        SELECT 
+        SELECT
             question_id,
             topic,
             COALESCE(subtopic, 'General') as subtopic,
@@ -423,7 +444,7 @@ def get_mastery_report(conn: sqlite3.Connection, topic: Optional[str] = None) ->
         FROM history
     ),
     topic_cumulative AS (
-        SELECT 
+        SELECT
             topic,
             COALESCE(subtopic, 'General') as subtopic,
             COUNT(*) as total_attempts,
@@ -433,7 +454,7 @@ def get_mastery_report(conn: sqlite3.Connection, topic: Optional[str] = None) ->
         GROUP BY topic, COALESCE(subtopic, 'General')
     ),
     topic_current AS (
-        SELECT 
+        SELECT
             topic,
             subtopic,
             COUNT(*) as unique_seen,
@@ -443,7 +464,7 @@ def get_mastery_report(conn: sqlite3.Connection, topic: Optional[str] = None) ->
           AND (:topic IS NULL OR lower(topic) LIKE '%' || lower(:topic) || '%')
         GROUP BY topic, subtopic
     )
-    SELECT 
+    SELECT
         c.topic,
         c.subtopic,
         c.total_attempts,
@@ -458,9 +479,9 @@ def get_mastery_report(conn: sqlite3.Connection, topic: Optional[str] = None) ->
     return [dict(r) for r in cursor.fetchall()]
 
 
-def get_calibration_report(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+def get_calibration_report(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     query = """
-    SELECT 
+    SELECT
         confidence_rating,
         COUNT(*) as total_attempts,
         SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
@@ -469,20 +490,22 @@ def get_calibration_report(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
         SUM(CASE WHEN confidence_rating = 'certain' AND is_correct = 0 THEN 1 ELSE 0 END) as dunning_kruger_blunders
     FROM history
     GROUP BY confidence_rating
-    ORDER BY 
-        CASE confidence_rating 
-            WHEN 'certain' THEN 1 
-            WHEN 'educated_guess' THEN 2 
-            WHEN 'blind_guess' THEN 3 
+    ORDER BY
+        CASE confidence_rating
+            WHEN 'certain' THEN 1
+            WHEN 'educated_guess' THEN 2
+            WHEN 'blind_guess' THEN 3
         END;
     """
     cursor = conn.execute(query)
     return [dict(r) for r in cursor.fetchall()]
 
 
-def get_error_taxonomy_report(conn: sqlite3.Connection, topic: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_error_taxonomy_report(
+    conn: sqlite3.Connection, topic: str | None = None
+) -> list[dict[str, Any]]:
     query = """
-    SELECT 
+    SELECT
         topic,
         error_category,
         COUNT(*) as count,
@@ -498,9 +521,9 @@ def get_error_taxonomy_report(conn: sqlite3.Connection, topic: Optional[str] = N
     return [dict(r) for r in cursor.fetchall()]
 
 
-def get_time_analysis(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+def get_time_analysis(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     query = """
-    SELECT 
+    SELECT
         switched_answer,
         COUNT(*) as count,
         ROUND(AVG(is_correct) * 100.0, 1) as accuracy_pct,
@@ -518,7 +541,10 @@ def get_time_analysis(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
 # Terminal Display Helpers
 # =====================================================================
 
-def display_reports(conn: sqlite3.Connection, topic: Optional[str] = None, report_type: str = "all") -> None:
+
+def display_reports(
+    conn: sqlite3.Connection, topic: str | None = None, report_type: str = "all"
+) -> None:
     has_rendered = False
 
     # 1. Mastery Report
@@ -535,7 +561,11 @@ def display_reports(conn: sqlite3.Connection, topic: Optional[str] = None, repor
             t_mastery.add_column("Current Mastery %", justify="right", style="bold")
 
             for m in mastery:
-                color = "green" if m["current_mastery_pct"] >= 75 else ("yellow" if m["current_mastery_pct"] >= 60 else "red")
+                color = (
+                    "green"
+                    if m["current_mastery_pct"] >= 75
+                    else ("yellow" if m["current_mastery_pct"] >= 60 else "red")
+                )
                 t_mastery.add_row(
                     m["topic"],
                     m["subtopic"],
@@ -552,7 +582,10 @@ def display_reports(conn: sqlite3.Connection, topic: Optional[str] = None, repor
         calib = get_calibration_report(conn)
         if calib:
             has_rendered = True
-            t_calib = Table(title="⚖️ Metacognitive Calibration (Dunning-Kruger Detection)", header_style="bold blue")
+            t_calib = Table(
+                title="⚖️ Metacognitive Calibration (Dunning-Kruger Detection)",
+                header_style="bold blue",
+            )
             t_calib.add_column("Confidence Level", style="cyan")
             t_calib.add_column("Attempts", justify="right")
             t_calib.add_column("Correct", justify="right", style="green")
@@ -577,7 +610,9 @@ def display_reports(conn: sqlite3.Connection, topic: Optional[str] = None, repor
         errors = get_error_taxonomy_report(conn, topic)
         if errors:
             has_rendered = True
-            t_errors = Table(title="🔍 Tri-Partite Error Taxonomy Breakdown", header_style="bold yellow")
+            t_errors = Table(
+                title="🔍 Tri-Partite Error Taxonomy Breakdown", header_style="bold yellow"
+            )
             t_errors.add_column("Topic", style="cyan")
             t_errors.add_column("Error Category", style="magenta")
             t_errors.add_column("Error Count", justify="right")
@@ -601,7 +636,9 @@ def display_reports(conn: sqlite3.Connection, topic: Optional[str] = None, repor
         time_stats = get_time_analysis(conn)
         if time_stats:
             has_rendered = True
-            t_time = Table(title="⏱️ Time Profiling & Answer Switching Payoff", header_style="bold magenta")
+            t_time = Table(
+                title="⏱️ Time Profiling & Answer Switching Payoff", header_style="bold magenta"
+            )
             t_time.add_column("Switched Answer?", style="cyan")
             t_time.add_column("Count", justify="right")
             t_time.add_column("Accuracy %", justify="right", style="bold")
@@ -611,7 +648,9 @@ def display_reports(conn: sqlite3.Connection, topic: Optional[str] = None, repor
 
             for ts in time_stats:
                 t_time.add_row(
-                    "Yes (Second-guessed)" if ts["switched_answer"] == 1 else "No (Stuck with first)",
+                    "Yes (Second-guessed)"
+                    if ts["switched_answer"] == 1
+                    else "No (Stuck with first)",
                     str(ts["count"]),
                     f"{ts['accuracy_pct']}%",
                     f"{ts['avg_seconds']}s",
@@ -621,15 +660,20 @@ def display_reports(conn: sqlite3.Connection, topic: Optional[str] = None, repor
             console.print(t_time)
 
     if not has_rendered:
-        console.print("[yellow]No study history recorded yet. Complete an exam block in tutor_tui.py or tutor_cli.py to generate analytics.[/yellow]")
+        console.print(
+            "[yellow]No study history recorded yet. Complete an exam block in tutor_tui.py or tutor_cli.py to generate analytics.[/yellow]"
+        )
 
 
 # =====================================================================
 # CLI Entrypoint
 # =====================================================================
 
+
 def main():
-    parser = argparse.ArgumentParser(description="PDF-School Hybrid SQLite Analytics & Weakness Triage")
+    parser = argparse.ArgumentParser(
+        description="PDF-School Hybrid SQLite Analytics & Weakness Triage"
+    )
     parser.add_argument("--db", default=str(DEFAULT_DB), help="Path to study.db SQLite mirror")
     parser.add_argument("--qbank", default=str(DEFAULT_QBANK), help="Path to qbank.jsonl")
     parser.add_argument("--history", default=str(DEFAULT_HISTORY), help="Path to history.jsonl")
@@ -637,17 +681,27 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Subcommand: sync
-    p_sync = subparsers.add_parser("sync", help="Synchronize JSONL data into the SQLite analytical mirror")
-    p_sync.add_argument("--force", action="store_true", help="Force complete resync regardless of mtime")
+    p_sync = subparsers.add_parser(
+        "sync", help="Synchronize JSONL data into the SQLite analytical mirror"
+    )
+    p_sync.add_argument(
+        "--force", action="store_true", help="Force complete resync regardless of mtime"
+    )
 
     # Subcommand: report
     p_report = subparsers.add_parser("report", help="Display analytical reports")
-    p_report.add_argument("--type", choices=["all", "mastery", "calibration", "errors", "time"], default="all")
+    p_report.add_argument(
+        "--type", choices=["all", "mastery", "calibration", "errors", "time"], default="all"
+    )
     p_report.add_argument("--topic", help="Filter report by topic")
-    p_report.add_argument("--format", choices=["table", "json"], default="table", help="Output format")
+    p_report.add_argument(
+        "--format", choices=["table", "json"], default="table", help="Output format"
+    )
 
     # Subcommand: queue
-    p_queue = subparsers.add_parser("queue", help="Generate adaptive weakness remediation question queue")
+    p_queue = subparsers.add_parser(
+        "queue", help="Generate adaptive weakness remediation question queue"
+    )
     p_queue.add_argument("--limit", type=int, default=15, help="Number of questions in queue")
     p_queue.add_argument("--topic", help="Filter queue by topic")
 
@@ -658,7 +712,9 @@ def main():
 
     if args.command == "sync":
         counts = sync_db(db_p, qb_p, hi_p, force=args.force)
-        console.print(f"[green]✅ Sync complete: {counts['questions']} questions, {counts['history']} history logs, {counts['fsrs']} FSRS states mirrored.[/green]")
+        console.print(
+            f"[green]✅ Sync complete: {counts['questions']} questions, {counts['history']} history logs, {counts['fsrs']} FSRS states mirrored.[/green]"
+        )
 
     elif args.command == "report":
         sync_db(db_p, qb_p, hi_p)
@@ -682,9 +738,13 @@ def main():
         if not questions:
             console.print("[yellow]No questions found matching criteria.[/yellow]")
         else:
-            console.print(f"[bold green]Adaptive Remediation Queue ({len(questions)} items):[/bold green]")
+            console.print(
+                f"[bold green]Adaptive Remediation Queue ({len(questions)} items):[/bold green]"
+            )
             for idx, q in enumerate(questions, 1):
-                console.print(f"  {idx}. [cyan]{q.id}[/cyan] | [magenta]{q.topic} - {q.subtopic or 'General'}[/magenta] | {'🔨'*q.difficulty_hammer} | {q.lead_in[:60]}...")
+                console.print(
+                    f"  {idx}. [cyan]{q.id}[/cyan] | [magenta]{q.topic} - {q.subtopic or 'General'}[/magenta] | {'🔨' * q.difficulty_hammer} | {q.lead_in[:60]}..."
+                )
 
 
 if __name__ == "__main__":

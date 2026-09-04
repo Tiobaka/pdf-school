@@ -9,4 +9,10 @@ build/
 data/*.db
 data/*.db-wal
 data/*.db-shm
+.coverage
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
 

@@ -18,7 +18,7 @@ if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
 
 import json
 import re
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import requests
 from dotenv import load_dotenv
@@ -32,7 +32,7 @@ load_dotenv()
 console = Console()
 
 
-def get_llm_config() -> Tuple[str, str, str, Optional[str]]:
+def get_llm_config() -> tuple[str, str, str, str | None]:
     """
     Detects active LLM configuration from environment variables.
     Returns: (provider, api_key, model_name, base_url)
@@ -71,9 +71,16 @@ def get_llm_config() -> Tuple[str, str, str, Optional[str]]:
         )
 
     # 4. OpenRouter / Groq / Ollama / Custom OpenAI-Compatible
-    base_url = os.getenv("OPENAI_BASE_URL") or os.getenv("LLM_BASE_URL") or os.getenv("OLLAMA_BASE_URL")
+    base_url = (
+        os.getenv("OPENAI_BASE_URL") or os.getenv("LLM_BASE_URL") or os.getenv("OLLAMA_BASE_URL")
+    )
     if base_url or provider in ["openrouter", "groq", "ollama", "custom"]:
-        api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY") or "ollama"
+        api_key = (
+            os.getenv("OPENROUTER_API_KEY")
+            or os.getenv("GROQ_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+            or "ollama"
+        )
         target_url = base_url if base_url else "http://localhost:11434/v1/chat/completions"
         if not target_url.endswith("/chat/completions"):
             target_url = target_url.rstrip("/") + "/chat/completions"
@@ -82,7 +89,7 @@ def get_llm_config() -> Tuple[str, str, str, Optional[str]]:
     return ("none", "", "", None)
 
 
-def clean_json_response(raw_text: str) -> Dict[str, Any]:
+def clean_json_response(raw_text: str) -> dict[str, Any]:
     """
     Strips markdown code fencing and parses JSON cleanly.
     """
@@ -90,11 +97,12 @@ def clean_json_response(raw_text: str) -> Dict[str, Any]:
     match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
     if match:
         text = match.group(1).strip()
-    return json.loads(text)
+    data = json.loads(text)
+    return data if isinstance(data, dict) else {}
 
 
 def call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.3) -> str:
-    provider, api_key, model, base_url = get_llm_config()
+    provider, api_key_opt, model, base_url_opt = get_llm_config()
 
     if provider == "none":
         raise ValueError(
@@ -105,7 +113,9 @@ def call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.3) -> 
             "  - OPENAI_BASE_URL (for Ollama, vLLM, OpenRouter, Groq)"
         )
 
-    headers = {}
+    api_key: str = api_key_opt or ""
+    base_url: str = base_url_opt or ""
+    headers: dict[str, str] = {}
     timeout_secs = 60
 
     if provider == "gemini":
@@ -114,7 +124,7 @@ def call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.3) -> 
             "x-goog-api-key": api_key,
             "Content-Type": "application/json",
         }
-        payload = {
+        payload: dict[str, Any] = {
             "contents": [
                 {"role": "user", "parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]}
             ],
@@ -126,8 +136,7 @@ def call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.3) -> 
         resp = requests.post(url, headers=headers, json=payload, timeout=timeout_secs)
         resp.raise_for_status()
         data = resp.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"]
-
+        return str(data["candidates"][0]["content"]["parts"][0]["text"])
 
     elif provider == "anthropic":
         url = base_url
@@ -146,7 +155,7 @@ def call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.3) -> 
         resp = requests.post(url, headers=headers, json=payload, timeout=timeout_secs)
         resp.raise_for_status()
         data = resp.json()
-        return data["content"][0]["text"]
+        return str(data["content"][0]["text"])
 
     elif provider in ["openai", "openai_compatible"]:
         url = base_url
@@ -166,33 +175,35 @@ def call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.3) -> 
         resp = requests.post(url, headers=headers, json=payload, timeout=timeout_secs)
         resp.raise_for_status()
         data = resp.json()
-        return data["choices"][0]["message"]["content"]
+        return str(data["choices"][0]["message"]["content"])
 
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
 
-def generate_structured_json(system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+def generate_structured_json(system_prompt: str, user_prompt: str) -> dict[str, Any]:
     raw_response = call_llm(system_prompt, user_prompt)
     return clean_json_response(raw_response)
 
 
 def main():
     provider, api_key, model, base_url = get_llm_config()
-    console.print(f"[bold cyan]PDF-School Platform-Agnostic LLM Client[/bold cyan]")
+    console.print("[bold cyan]PDF-School Platform-Agnostic LLM Client[/bold cyan]")
     console.print(f"  • Provider: [bold]{provider}[/bold]")
     console.print(f"  • Model:    [bold]{model}[/bold]")
     console.print(f"  • Base URL: [dim]{base_url}[/dim]")
     console.print(f"  • Key set:  {'[green]Yes[/green]' if api_key else '[red]No[/red]'}")
 
     if provider == "none":
-        console.print("\n[yellow]To enable automatic question forging without an IDE agent, create a .env file:[/yellow]")
+        console.print(
+            "\n[yellow]To enable automatic question forging without an IDE agent, create a .env file:[/yellow]"
+        )
         console.print("  echo 'GEMINI_API_KEY=your_key_here' > .env")
         console.print("  # or: OPENAI_API_KEY=sk-...")
         console.print("  # or: ANTHROPIC_API_KEY=sk-ant-...")
         console.print("  # or: OPENAI_BASE_URL=http://localhost:11434/v1 (for local Ollama)")
     else:
-        console.print(f"\n[green]✔ Backend ready for automated question generation.[/green]")
+        console.print("\n[green]✔ Backend ready for automated question generation.[/green]")
 
 
 if __name__ == "__main__":

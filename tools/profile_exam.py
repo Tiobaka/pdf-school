@@ -18,7 +18,6 @@ if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
 import argparse
 import json
 import re
-from typing import Dict, List, Optional
 
 import pymupdf
 from rich.console import Console
@@ -28,8 +27,6 @@ from rich.table import Table
 sys.path.insert(0, str(PROJECT_ROOT))
 from tools.schemas import ExamStyleProfile
 
-
-
 DEFAULT_INPUT = str(PROJECT_ROOT / "sources" / "past_exams")
 DEFAULT_OUTPUT = str(PROJECT_ROOT / "data" / "exam_style.json")
 
@@ -37,29 +34,38 @@ console = Console()
 
 
 def extract_text_from_file(file_path: Path) -> str:
-    if file_path.suffix.lower() == ".pdf":
+    ext = file_path.suffix.lower()
+    if ext == ".pdf":
         with pymupdf.open(str(file_path)) as doc:
             pages_text = [page.get_text() for page in doc]
         return "\n".join(pages_text)
-    else:
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            return f.read()
+    elif ext in [".docx", ".pptx", ".xlsx"]:
+        from markitdown import MarkItDown
 
+        md = MarkItDown()
+        return md.convert(str(file_path)).text_content
+    else:
+        with open(file_path, encoding="utf-8", errors="ignore") as f:
+            return f.read()
 
 
 def analyze_exam_text(raw_text: str, profile_name: str = "custom_professor") -> ExamStyleProfile:
     # Pattern to find questions: lines starting with numbers like "1. ", "Question 1:", "Q1."
-    question_split_pattern = re.compile(r"(?:^|\n)\s*(?:Question\s*)?(\d+)[\.\:\)]\s*", re.IGNORECASE)
+    question_split_pattern = re.compile(
+        r"(?:^|\n)\s*(?:Question\s*)?(\d+)[\.\:\)]\s*", re.IGNORECASE
+    )
     splits = question_split_pattern.split(raw_text)
-    
-    questions_raw: List[str] = []
+
+    questions_raw: list[str] = []
     if len(splits) > 1:
         # splits: [preamble, q_num1, q_text1, q_num2, q_text2, ...]
         for i in range(2, len(splits), 2):
             questions_raw.append(splits[i].strip())
     else:
         # Fallback: split by double newlines
-        questions_raw = [block.strip() for block in raw_text.split("\n\n") if len(block.strip()) > 30]
+        questions_raw = [
+            block.strip() for block in raw_text.split("\n\n") if len(block.strip()) > 30
+        ]
 
     total_detected = len(questions_raw)
     if total_detected == 0:
@@ -73,11 +79,11 @@ def analyze_exam_text(raw_text: str, profile_name: str = "custom_professor") -> 
             exemplars=[],
         )
 
-    stem_word_counts: List[int] = []
-    option_counts_list: List[int] = []
+    stem_word_counts: list[int] = []
+    option_counts_list: list[int] = []
     negative_stem_count = 0
     multiple_select_count = 0
-    exemplars: List[Dict[str, str]] = []
+    exemplars: list[dict[str, str]] = []
 
     # Regex for options (A., B., C., D., E. or A), B))
     option_regex = re.compile(r"(?:^|\n)\s*([A-Ea-e])[\.\)]\s*(.+)")
@@ -90,7 +96,7 @@ def analyze_exam_text(raw_text: str, profile_name: str = "custom_professor") -> 
             option_counts_list.append(len(options))
             # Stem is everything before the first option
             first_opt_match = option_regex.search(q)
-            stem = q[:first_opt_match.start()].strip() if first_opt_match else q
+            stem = q[: first_opt_match.start()].strip() if first_opt_match else q
         else:
             stem = q
 
@@ -100,19 +106,23 @@ def analyze_exam_text(raw_text: str, profile_name: str = "custom_professor") -> 
         if negative_pattern.search(stem):
             negative_stem_count += 1
 
-        if re.search(r"\b(both|all of the above|none of the above|I and II|A and B)\b", q, re.IGNORECASE):
+        if re.search(
+            r"\b(both|all of the above|none of the above|I and II|A and B)\b", q, re.IGNORECASE
+        ):
             multiple_select_count += 1
 
         # Keep up to 3 clean exemplars
         if len(exemplars) < 3 and len(stem_words) >= 5 and options:
             exemplar_dict = {
                 "stem": stem,
-                "options": "\n".join([f"{opt[0].upper()}) {opt[1].strip()}" for opt in options])
+                "options": "\n".join([f"{opt[0].upper()}) {opt[1].strip()}" for opt in options]),
             }
             exemplars.append(exemplar_dict)
 
     avg_stem_len = sum(stem_word_counts) / len(stem_word_counts) if stem_word_counts else 30
-    avg_opt_count = round(sum(option_counts_list) / len(option_counts_list)) if option_counts_list else 4
+    avg_opt_count = (
+        round(sum(option_counts_list) / len(option_counts_list)) if option_counts_list else 4
+    )
 
     if avg_stem_len < 25:
         stem_type = "direct_recall"
@@ -135,7 +145,9 @@ def analyze_exam_text(raw_text: str, profile_name: str = "custom_professor") -> 
     )
 
 
-def profile_exams(input_dir_or_file: str, output_file: str = "data/exam_style.json") -> Optional[ExamStyleProfile]:
+def profile_exams(
+    input_dir_or_file: str, output_file: str = "data/exam_style.json"
+) -> ExamStyleProfile | None:
     path = Path(input_dir_or_file)
     if not path.exists():
         console.print(f"[yellow]⚠️ Target path '{input_dir_or_file}' does not exist.[/yellow]")
@@ -147,9 +159,15 @@ def profile_exams(input_dir_or_file: str, output_file: str = "data/exam_style.js
         profile_name = path.stem
     else:
         files = list(path.glob("*.*"))
-        valid_files = [f for f in files if f.suffix.lower() in [".pdf", ".txt", ".md", ".json"]]
+        valid_files = [
+            f
+            for f in files
+            if f.suffix.lower() in [".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".md", ".json"]
+        ]
         if not valid_files:
-            console.print(f"[yellow]⚠️ No past exam files (.pdf, .txt, .md) found in '{input_dir_or_file}'.[/yellow]")
+            console.print(
+                f"[yellow]⚠️ No past exam files (.pdf, .docx, .pptx, .txt, .md) found in '{input_dir_or_file}'.[/yellow]"
+            )
             return None
         for f in valid_files:
             all_text.append(extract_text_from_file(f))
@@ -160,40 +178,61 @@ def profile_exams(input_dir_or_file: str, output_file: str = "data/exam_style.js
 
     out_p = Path(output_file)
     out_p.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_p, "w", encoding="utf-8") as f:
-        json.dump(profile.model_dump(), f, indent=2, ensure_ascii=False)
+    with open(out_p, "w", encoding="utf-8") as fp:
+        json.dump(profile.model_dump(), fp, indent=2, ensure_ascii=False)
 
     return profile
 
 
 def display_profile(profile: ExamStyleProfile, dest_file: str):
-    table = Table(title="🎓 Professor Exam Style Profile (Track A Active)", show_header=True, header_style="bold magenta")
+    table = Table(
+        title="🎓 Professor Exam Style Profile (Track A Active)",
+        show_header=True,
+        header_style="bold magenta",
+    )
     table.add_column("Attribute", style="cyan")
     table.add_column("Detected Pattern", style="green")
 
     table.add_row("Profile Name", profile.style_name)
     table.add_row("Question Stem Style", profile.stem_type)
     table.add_row("Standard Option Count", f"{profile.option_count} choices")
-    table.add_row("Negative Stems (EXCEPT/NOT)", "Yes (Frequently used)" if profile.allows_negative_stems else "No / Minimal")
-    table.add_row("Multiple Selection / True-False", "Yes (Detected)" if profile.allows_multiple_select else "No / Standard MCQ")
+    table.add_row(
+        "Negative Stems (EXCEPT/NOT)",
+        "Yes (Frequently used)" if profile.allows_negative_stems else "No / Minimal",
+    )
+    table.add_row(
+        "Multiple Selection / True-False",
+        "Yes (Detected)" if profile.allows_multiple_select else "No / Standard MCQ",
+    )
     table.add_row("Extracted Exemplars", f"{len(profile.exemplars)} sample questions captured")
 
-    console.print(Panel(table, title="[bold blue]PDF-School Exam Profiler[/bold blue]", expand=False))
-    console.print(f"💾 Saved profile configuration to: [bold underline]{dest_file}[/bold underline]\n")
+    console.print(
+        Panel(table, title="[bold blue]PDF-School Exam Profiler[/bold blue]", expand=False)
+    )
+    console.print(
+        f"💾 Saved profile configuration to: [bold underline]{dest_file}[/bold underline]\n"
+    )
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Analyze past exams and generate an ExamStyleProfile for Track A")
-    parser.add_argument("--input", default=DEFAULT_INPUT, help="Directory or file containing past exams")
-    parser.add_argument("--output", default=DEFAULT_OUTPUT, help="Destination JSON path for the profile")
-
+    parser = argparse.ArgumentParser(
+        description="Analyze past exams and generate an ExamStyleProfile for Track A"
+    )
+    parser.add_argument(
+        "--input", default=DEFAULT_INPUT, help="Directory or file containing past exams"
+    )
+    parser.add_argument(
+        "--output", default=DEFAULT_OUTPUT, help="Destination JSON path for the profile"
+    )
 
     args = parser.parse_args()
     profile = profile_exams(args.input, args.output)
     if profile:
         display_profile(profile, args.output)
     else:
-        console.print("[blue]ℹ️ No exam profile generated. Track B (Pedagogical Mastery Mode) will be used by default.[/blue]")
+        console.print(
+            "[blue]ℹ️ No exam profile generated. Track B (Pedagogical Mastery Mode) will be used by default.[/blue]"
+        )
 
 
 if __name__ == "__main__":

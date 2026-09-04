@@ -1,8 +1,11 @@
 import json
 from datetime import datetime, timezone
-from pathlib import Path
-from tools.schemas import DailySchedule, HistoryRecord, QBankQuestion
-from tools.scheduler import compute_question_fsrs_states, generate_daily_schedule
+
+from pdf_school.engine.scheduler import (
+    compute_question_fsrs_states,
+    generate_daily_schedule,
+)
+from pdf_school.schemas import HistoryRecord, QBankQuestion
 
 
 def test_fsrs_history_computation(tmp_path):
@@ -21,7 +24,7 @@ def test_fsrs_history_computation(tmp_path):
 
     cards = compute_question_fsrs_states(str(hist_file))
     assert "q_renal_001" in cards
-    assert cards["q_renal_001"].stability > 0
+    assert cards["q_renal_001"].stability is not None and cards["q_renal_001"].stability > 0
 
 
 def test_generate_daily_schedule(tmp_path):
@@ -123,9 +126,8 @@ def test_fsrs_chronological_replay_and_overdue_sorting(tmp_path):
 
     cards = compute_question_fsrs_states(str(hist_file))
     assert "q1" in cards
-    assert cards["q1"].stability > 0
+    assert cards["q1"].stability is not None and cards["q1"].stability > 0
     assert cards["q1"].last_review is not None
-
 
     # Verify daily schedule excludes q_orphaned and includes q1
     sched = generate_daily_schedule(
@@ -135,4 +137,3 @@ def test_fsrs_chronological_replay_and_overdue_sorting(tmp_path):
     )
     assert "q_orphaned" not in sched.due_reviews
     assert "q_orphaned" not in sched.new_questions
-

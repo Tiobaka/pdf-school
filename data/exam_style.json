@@ -1,0 +1,25 @@
+{
+  "style_name": "course_professor_profile",
+  "stem_type": "short_vignette",
+  "option_count": 5,
+  "allows_negative_stems": false,
+  "allows_multiple_select": false,
+  "focus_areas": [
+    "avg_stem_length_34_words"
+  ],
+  "exemplars": [
+    {
+      "stem": "**Los tumores hipofisarios pueden manifestarse como:**",
+      "options": "A) Acromegalia, pérdida aguda de la visión, hiperprolactinemia\nB) Enfermedad de Cushing, hipergastrinemia, diabetes insípida\nC) Hipercortisolismo, hipotiroidismo, hipercalcemia\nD) Alteraciones de la conducta, gigantismo, enfermedad de Addison"
+    },
+    {
+      "stem": "**El pan-hipopituitarismo hace referencia a:**",
+      "options": "A) Déficit de una trofina hipofisaria\nB) Déficit de más de 2 trofinas hipofisárias\nC) Déficit de un factor de liberación hipotalámica\nD) El termino se aplica exclusivamente al déficit total de la función hipofisaria"
+    },
+    {
+      "stem": "**Con respecto a las neoplasias endócrinas múltiple, marque la opción correcta**a) Son de herencia AD..",
+      "options": "B) El prolactinoma puede formar parte del tipo II\nC) El hipoparatiroidismo forma parte del tipo I\nD) El feocromocitoma forma parte del tipo I\nA) Hipotiroidismo subclínico requiere levotiroxina à 1.1 mcg/kg/dia\nB) Hipotiroidismo subclínico requiere levotiroxina à 1.1mcg/kg/dia\nC) Hipotiroidismo clínico requiere levotiroxina à 1.6 mg/kg/dia\nD) Ninguna opción es correcta"
+    }
+  ],
+  "system_prompt_override": null
+}

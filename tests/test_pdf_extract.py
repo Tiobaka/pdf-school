@@ -1,19 +1,21 @@
-import os
-import tempfile
-from pathlib import Path
 import pymupdf
-import pytest
-from tools.pdf_extract import extract_pdf_chunks
+
+from pdf_school.core.extract import extract_pdf_chunks
 
 
 def create_sample_pdf(filepath: str):
     doc = pymupdf.open()
     # Page 1
     p1 = doc.new_page()
-    p1.insert_text((50, 50), "Renal Pathology\n\nGlomerulonephritis represents an inflammatory condition...")
+    p1.insert_text(
+        (50, 50), "Renal Pathology\n\nGlomerulonephritis represents an inflammatory condition..."
+    )
     # Page 2
     p2 = doc.new_page()
-    p2.insert_text((50, 50), "Pharmacology of Diuretics\n\nFurosemide is a loop diuretic that inhibits the Na+/K+/2Cl- cotransporter in the thick ascending limb of the loop of Henle.")
+    p2.insert_text(
+        (50, 50),
+        "Pharmacology of Diuretics\n\nFurosemide is a loop diuretic that inhibits the Na+/K+/2Cl- cotransporter in the thick ascending limb of the loop of Henle.",
+    )
     doc.save(filepath)
     doc.close()
 

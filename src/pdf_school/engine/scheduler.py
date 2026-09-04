@@ -1,0 +1,222 @@
+#!/usr/bin/env python3
+"""
+scheduler.py - FSRS-5 (Free Spaced Repetition Scheduler) for PDF-School.
+Processes user study telemetry from history.jsonl and calculates daily review queues.
+"""
+
+import argparse
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+from fsrs import Card, Rating, Scheduler
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
+from pdf_school.core.config import PROJECT_ROOT
+from pdf_school.schemas import DailySchedule, HistoryRecord
+
+DEFAULT_QBANK = str(PROJECT_ROOT / "data" / "qbank.jsonl")
+DEFAULT_HISTORY = str(PROJECT_ROOT / "data" / "history.jsonl")
+DEFAULT_SCHEDULE = str(PROJECT_ROOT / "data" / "schedule.json")
+
+
+console = Console()
+
+
+def compute_question_fsrs_states(
+    history_path: str = "data/history.jsonl",
+) -> dict[str, Card]:
+    """
+    Replays history.jsonl to compute the current FSRS Card state for each question.
+    Records are sorted by timestamp to ensure chronological replay.
+    """
+    path = Path(history_path)
+    if not path.exists():
+        return {}
+
+    scheduler = Scheduler()
+    cards: dict[str, Card] = {}
+    records: list[tuple[datetime, HistoryRecord]] = []
+
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec_data = json.loads(line)
+                rec = HistoryRecord(**rec_data)
+                review_time = datetime.fromisoformat(rec.timestamp)
+                if review_time.tzinfo is None:
+                    review_time = review_time.replace(tzinfo=timezone.utc)
+                records.append((review_time, rec))
+            except Exception:
+                continue
+
+    # Chronological sort guarantees FSRS stability calculations never receive negative intervals
+    records.sort(key=lambda x: x[0])
+
+    for review_time, rec in records:
+        q_id = rec.question_id
+        if q_id not in cards:
+            cards[q_id] = Card()
+
+        # Map user outcome & confidence to FSRS Rating
+        if not rec.is_correct:
+            rating = Rating.Again
+        else:
+            if rec.confidence_rating == "blind_guess":
+                rating = Rating.Hard
+            elif rec.confidence_rating == "educated_guess":
+                rating = Rating.Good
+            else:  # certain
+                rating = Rating.Easy
+
+        updated_card, _ = scheduler.review_card(cards[q_id], rating, review_time)
+        cards[q_id] = updated_card
+
+    return cards
+
+
+def generate_daily_schedule(
+    qbank_path: str = "data/qbank.jsonl",
+    history_path: str = "data/history.jsonl",
+    output_path: str = "data/schedule.json",
+    max_reviews: int = 30,
+    max_new: int = 15,
+    target_date: str | None = None,
+) -> DailySchedule:
+    # 1. Load all available question IDs
+    all_q_ids: list[str] = []
+    q_bank_file = Path(qbank_path)
+    if q_bank_file.exists():
+        with open(q_bank_file, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    all_q_ids.append(data["id"])
+                except Exception:
+                    continue
+
+    # 2. Compute memory state for reviewed questions
+    cards = compute_question_fsrs_states(history_path)
+    if target_date:
+        now = datetime.fromisoformat(target_date)
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=timezone.utc)
+    else:
+        now = datetime.now(timezone.utc)
+
+    # 3. Identify due reviews, filtering out deleted/orphaned questions
+    # and sorting by most overdue first
+    due_cards: list[tuple[datetime, str]] = []
+    active_ids: set[str] = set(all_q_ids)
+
+    for q_id, card in cards.items():
+        if q_id not in active_ids:
+            continue
+        card_due = card.due
+        if card_due.tzinfo is None:
+            card_due = card_due.replace(tzinfo=timezone.utc)
+        if card_due <= now:
+            due_cards.append((card_due, q_id))
+
+    # Sort so most overdue items are reviewed first
+    due_cards.sort(key=lambda item: item[0])
+    due_reviews = [q_id for _, q_id in due_cards]
+
+    # 4. Identify unencountered (new) questions
+    seen_ids: set[str] = set(cards.keys())
+    unseen_ids = [qid for qid in all_q_ids if qid not in seen_ids]
+
+    selected_reviews = due_reviews[:max_reviews]
+    selected_new = unseen_ids[:max_new]
+
+    today_str = now.strftime("%Y-%m-%d")
+    schedule = DailySchedule(
+        date=today_str,
+        due_reviews=selected_reviews,
+        new_questions=selected_new,
+    )
+
+    out_file = Path(output_path)
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_file, "w", encoding="utf-8") as f:
+        json.dump(schedule.model_dump(), f, indent=2)
+
+    return schedule
+
+
+def display_schedule(schedule: DailySchedule):
+    table = Table(
+        title=f"📅 Daily Study Block ({schedule.date})", show_header=True, header_style="bold blue"
+    )
+    table.add_column("Category", style="cyan")
+    table.add_column("Count", justify="right", style="bold green")
+    table.add_column("Description", style="dim")
+
+    table.add_row(
+        "Due Reviews",
+        str(len(schedule.due_reviews)),
+        "FSRS Spaced Repetition cards ready for retrieval practice",
+    )
+    table.add_row(
+        "New Questions", str(len(schedule.new_questions)), "Unencountered curriculum questions"
+    )
+    table.add_row(
+        "Total Block",
+        str(len(schedule.due_reviews) + len(schedule.new_questions)),
+        "Target daily session load",
+    )
+
+    console.print(Panel(table, title="[bold]PDF-School FSRS Scheduler[/bold]", border_style="cyan"))
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="FSRS Spaced Repetition study scheduler for PDF-School"
+    )
+    parser.add_argument("--qbank", default=DEFAULT_QBANK, help="Path to qbank.jsonl")
+    parser.add_argument("--history", default=DEFAULT_HISTORY, help="Path to history.jsonl")
+    parser.add_argument("--output", default=DEFAULT_SCHEDULE, help="Path to schedule.json")
+
+    parser.add_argument(
+        "--max-reviews", type=int, default=30, help="Maximum review questions per day"
+    )
+    parser.add_argument("--max-new", type=int, default=15, help="Maximum new questions per day")
+    parser.add_argument(
+        "--roadmap", action="store_true", help="Display curricular roadmap targets for today"
+    )
+    parser.add_argument(
+        "--date", default=None, help="Target date for schedule/roadmap (YYYY-MM-DD)"
+    )
+
+    args = parser.parse_args()
+    target_d = args.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    schedule = generate_daily_schedule(
+        qbank_path=args.qbank,
+        history_path=args.history,
+        output_path=args.output,
+        max_reviews=args.max_reviews,
+        max_new=args.max_new,
+        target_date=target_d,
+    )
+    display_schedule(schedule)
+
+    roadmap_file = PROJECT_ROOT / "data" / "roadmap.json"
+    if (args.roadmap or roadmap_file.exists()) and roadmap_file.exists():
+        try:
+            from pdf_school.engine.roadmap import print_today_view
+
+            print_today_view(target_d)
+        except Exception:
+            pass
+
+
+if __name__ == "__main__":
+    main()

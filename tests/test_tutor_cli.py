@@ -1,7 +1,7 @@
 import json
-from pathlib import Path
-from tools.schemas import HistoryRecord, QBankQuestion
-from tools.tutor_cli import load_qbank, log_history
+
+from pdf_school.schemas import HistoryRecord, QBankQuestion
+from pdf_school.tui.cli_runner import load_qbank, log_history
 
 
 def test_load_qbank(tmp_path):
@@ -15,7 +15,12 @@ def test_load_qbank(tmp_path):
         options={"A": "Delta wave", "B": "ST elevation", "C": "Prolonged PR", "D": "Tall T waves"},
         correct_key="A",
         educational_objective="Delta waves indicate pre-excitation in Wolff-Parkinson-White syndrome.",
-        distractor_analysis={"A": "Correct", "B": "STEMI", "C": "First degree AV block", "D": "Hyperkalemia"},
+        distractor_analysis={
+            "A": "Correct",
+            "B": "STEMI",
+            "C": "First degree AV block",
+            "D": "Hyperkalemia",
+        },
     )
     with open(qbank_file, "w", encoding="utf-8") as f:
         f.write(json.dumps(q.model_dump()) + "\n")
@@ -43,7 +48,7 @@ def test_log_history(tmp_path):
     log_history(record, str(hist_file))
 
     assert hist_file.exists()
-    with open(hist_file, "r", encoding="utf-8") as f:
+    with open(hist_file, encoding="utf-8") as f:
         data = json.loads(f.readline())
     assert data["question_id"] == "q_cardio_101"
     assert data["is_correct"] is False

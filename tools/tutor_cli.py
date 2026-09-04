@@ -19,8 +19,6 @@ if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
 import argparse
 import json
 import time
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -35,17 +33,16 @@ DEFAULT_QBANK = str(PROJECT_ROOT / "data" / "qbank.jsonl")
 DEFAULT_HISTORY = str(PROJECT_ROOT / "data" / "history.jsonl")
 
 
-
 console = Console()
 
 
-def load_qbank(qbank_path: str = "data/qbank.jsonl") -> List[QBankQuestion]:
+def load_qbank(qbank_path: str = "data/qbank.jsonl") -> list[QBankQuestion]:
     path = Path(qbank_path)
     if not path.exists():
         console.print(f"[red]Error: Question bank '{qbank_path}' not found.[/red]")
         return []
     questions = []
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -53,7 +50,7 @@ def load_qbank(qbank_path: str = "data/qbank.jsonl") -> List[QBankQuestion]:
             try:
                 data = json.loads(line)
                 questions.append(QBankQuestion(**data))
-            except Exception as e:
+            except Exception:
                 continue
     return questions
 
@@ -65,7 +62,7 @@ def log_history(record: HistoryRecord, history_path: str = "data/history.jsonl")
         f.write(json.dumps(record.model_dump(), ensure_ascii=False) + "\n")
 
 
-def display_source_peek(source_ref: Dict[str, str]):
+def display_source_peek(source_ref: dict[str, str]):
     chunk_id = source_ref.get("chunk_id", "Unknown")
     source_file = source_ref.get("source_file", "Unknown")
     page = source_ref.get("page", "Unknown")
@@ -76,7 +73,7 @@ def display_source_peek(source_ref: Dict[str, str]):
     found_text = None
     for jsonl_file in (PROJECT_ROOT / "content").glob("*_chunks.jsonl"):
         try:
-            with open(jsonl_file, "r", encoding="utf-8") as f:
+            with open(jsonl_file, encoding="utf-8") as f:
                 for line in f:
                     data = json.loads(line)
                     if data.get("chunk_id") == chunk_id:
@@ -92,7 +89,11 @@ def display_source_peek(source_ref: Dict[str, str]):
     else:
         peek_text += "*(Source chunk text file not found in local content/ directory)*"
 
-    console.print(Panel(Markdown(peek_text), title="[cyan]📖 Source Material Peek[/cyan]", border_style="cyan"))
+    console.print(
+        Panel(
+            Markdown(peek_text), title="[cyan]📖 Source Material Peek[/cyan]", border_style="cyan"
+        )
+    )
 
 
 def run_question_session(
@@ -103,17 +104,21 @@ def run_question_session(
     history_path: str = "data/history.jsonl",
 ) -> HistoryRecord:
     console.clear()
-    
+
     # Header
     hammer_display = "🔨" * q.difficulty_hammer
-    console.print(f"[bold cyan]Question {q_index}/{total_q}[/bold cyan] | [magenta]{q.topic} - {q.subtopic or 'General'}[/magenta] | [yellow]{hammer_display}[/yellow] | [dim]{q.cognitive_level}[/dim]\n")
+    console.print(
+        f"[bold cyan]Question {q_index}/{total_q}[/bold cyan] | [magenta]{q.topic} - {q.subtopic or 'General'}[/magenta] | [yellow]{hammer_display}[/yellow] | [dim]{q.cognitive_level}[/dim]\n"
+    )
 
     # Vignette
-    console.print(Panel(q.vignette, title="[bold]Clinical / Practical Scenario[/bold]", border_style="blue"))
+    console.print(
+        Panel(q.vignette, title="[bold]Clinical / Practical Scenario[/bold]", border_style="blue")
+    )
     console.print(f"\n[bold]{q.lead_in}[/bold]\n")
 
     # Interactive choice tracking
-    eliminated: Set[str] = set()
+    eliminated: set[str] = set()
     start_time = time.time()
     selected_key = None
     original_selection = None
@@ -128,7 +133,9 @@ def run_question_session(
             else:
                 console.print(f"  [bold white]{key})[/bold white] {opt_text}")
 
-        console.print("\n[dim]Commands: [A-E] to select | [x A] to eliminate/strike | [v] view source | [q] quit[/dim]")
+        console.print(
+            "\n[dim]Commands: [A-E] to select | [x A] to eliminate/strike | [v] view source | [q] quit[/dim]"
+        )
         user_input = Prompt.ask("Your Choice").strip()
 
         if not user_input:
@@ -157,12 +164,13 @@ def run_question_session(
                 switched = True
                 original_selection = selected_key
             selected_key = choice
-            console.print(f"  Selected: [bold green]({choice})[/bold green]. Confirm answer? [dim](Enter 'y' to submit, or choose another option)[/dim]")
+            console.print(
+                f"  Selected: [bold green]({choice})[/bold green]. Confirm answer? [dim](Enter 'y' to submit, or choose another option)[/dim]"
+            )
             if Prompt.ask("Submit choice?", choices=["y", "n"], default="y") == "y":
                 break
         else:
             console.print("[red]Invalid selection. Please choose an available option.[/red]")
-
 
     elapsed_time = round(time.time() - start_time, 1)
 
@@ -175,7 +183,7 @@ def run_question_session(
     conf_map = {"1": "certain", "2": "educated_guess", "3": "blind_guess"}
     confidence_rating = conf_map[conf_choice]
 
-    is_correct = (selected_key == q.correct_key)
+    is_correct = selected_key == q.correct_key
     error_cat = None
     user_note = None
 
@@ -183,23 +191,33 @@ def run_question_session(
     if tutor_mode:
         console.print("\n" + "=" * 80)
         if is_correct:
-            console.print(f"[bold green]✔ CORRECT! Single best answer is ({q.correct_key})[/bold green]")
+            console.print(
+                f"[bold green]✔ CORRECT! Single best answer is ({q.correct_key})[/bold green]"
+            )
         else:
-            console.print(f"[bold red]✘ INCORRECT. You selected ({selected_key}), but the correct answer is ({q.correct_key})[/bold red]")
-            
+            console.print(
+                f"[bold red]✘ INCORRECT. You selected ({selected_key}), but the correct answer is ({q.correct_key})[/bold red]"
+            )
+
             # Refutational Feedback for chosen distractor
             if selected_key in q.refutational_hints and q.refutational_hints[selected_key]:
-                console.print(Panel(
-                    q.refutational_hints[selected_key],
-                    title=f"[bold yellow]⚠️ Refutation of Option ({selected_key})[/bold yellow]",
-                    border_style="yellow"
-                ))
+                console.print(
+                    Panel(
+                        q.refutational_hints[selected_key],
+                        title=f"[bold yellow]⚠️ Refutation of Option ({selected_key})[/bold yellow]",
+                        border_style="yellow",
+                    )
+                )
 
             # Diagnostic Error Categorization
             console.print("\n[bold magenta]Error Analysis (Tri-Partite Taxonomy):[/bold magenta]")
             console.print("  [1] Knowledge Gap (Did not know the required fact or mechanism)")
-            console.print("  [2] Misconception (Understood premise but flawed logic or confused concepts)")
-            console.print("  [3] Process / Execution Error (Misread the stem, rushed, or second-guessed)")
+            console.print(
+                "  [2] Misconception (Understood premise but flawed logic or confused concepts)"
+            )
+            console.print(
+                "  [3] Process / Execution Error (Misread the stem, rushed, or second-guessed)"
+            )
             err_choice = Prompt.ask("Categorize your mistake", choices=["1", "2", "3"], default="1")
             err_map = {"1": "knowledge_gap", "2": "misconception", "3": "execution_error"}
             error_cat = err_map[err_choice]
@@ -215,14 +233,22 @@ def run_question_session(
 
         # Contrasting Cases Matrix if available
         if q.comparison_table:
-            console.print(Panel(Markdown(q.comparison_table), title="[bold cyan]⚖️ Differential Comparison Matrix[/bold cyan]", border_style="cyan"))
+            console.print(
+                Panel(
+                    Markdown(q.comparison_table),
+                    title="[bold cyan]⚖️ Differential Comparison Matrix[/bold cyan]",
+                    border_style="cyan",
+                )
+            )
 
         # Takeaway Anchor / Educational Objective
-        console.print(Panel(
-            f"[bold]{q.educational_objective}[/bold]",
-            title="[bold green]🎯 Educational Objective (Takeaway Anchor)[/bold green]",
-            border_style="green"
-        ))
+        console.print(
+            Panel(
+                f"[bold]{q.educational_objective}[/bold]",
+                title="[bold green]🎯 Educational Objective (Takeaway Anchor)[/bold green]",
+                border_style="green",
+            )
+        )
 
         Prompt.ask("\n[bold cyan]Press Enter to proceed to next question...[/bold cyan]")
 
@@ -247,14 +273,25 @@ def main():
     parser.add_argument("--qbank", default=DEFAULT_QBANK, help="Question bank JSONL file")
     parser.add_argument("--history", default=DEFAULT_HISTORY, help="History telemetry file")
     parser.add_argument("--topic", help="Filter by topic")
-    parser.add_argument("--mode", choices=["tutor", "timed"], default="tutor", help="Examination mode")
-    parser.add_argument("--tui", action="store_true", help="Launch in visual split-screen Textual TUI")
-    parser.add_argument("--adaptive", "--weakness", dest="adaptive", action="store_true", help="Adaptive weakness remediation mode")
+    parser.add_argument(
+        "--mode", choices=["tutor", "timed"], default="tutor", help="Examination mode"
+    )
+    parser.add_argument(
+        "--tui", action="store_true", help="Launch in visual split-screen Textual TUI"
+    )
+    parser.add_argument(
+        "--adaptive",
+        "--weakness",
+        dest="adaptive",
+        action="store_true",
+        help="Adaptive weakness remediation mode",
+    )
 
     args = parser.parse_args()
 
     if args.adaptive:
         from tools.study_db import get_weakness_queue
+
         questions = get_weakness_queue(
             qbank_path=Path(args.qbank),
             history_path=Path(args.history),
@@ -262,7 +299,9 @@ def main():
             topic=args.topic,
         )
         if not questions:
-            console.print("[yellow]No specific weakness questions found. Loading standard question bank.[/yellow]")
+            console.print(
+                "[yellow]No specific weakness questions found. Loading standard question bank.[/yellow]"
+            )
             questions = load_qbank(args.qbank)
             if args.topic:
                 questions = [q for q in questions if args.topic.lower() in q.topic.lower()]
@@ -275,25 +314,28 @@ def main():
         console.print("[yellow]No questions available to start session.[/yellow]")
         sys.exit(0)
 
-    session_questions = questions[:args.count]
+    session_questions = questions[: args.count]
 
     if args.tui:
         from tools.tutor_tui import TutorTUIApp
+
         app = TutorTUIApp(questions=session_questions, mode=args.mode, history_path=args.history)
         app.run()
         return
 
-    tutor_mode = (args.mode == "tutor")
+    tutor_mode = args.mode == "tutor"
 
-    console.print(f"[bold green]Starting {args.mode.upper()} session with {len(session_questions)} questions{' (Adaptive Weakness Mode)' if args.adaptive else ''}...[/bold green]")
+    console.print(
+        f"[bold green]Starting {args.mode.upper()} session with {len(session_questions)} questions{' (Adaptive Weakness Mode)' if args.adaptive else ''}...[/bold green]"
+    )
     time.sleep(1)
-
-
 
     correct_count = 0
     records = []
     for idx, q in enumerate(session_questions, 1):
-        rec = run_question_session(q, idx, len(session_questions), tutor_mode=tutor_mode, history_path=args.history)
+        rec = run_question_session(
+            q, idx, len(session_questions), tutor_mode=tutor_mode, history_path=args.history
+        )
         records.append(rec)
         if rec.is_correct:
             correct_count += 1
@@ -306,10 +348,10 @@ def main():
     summary_table.add_column("Value", style="bold green" if score_pct >= 70 else "bold red")
     summary_table.add_row("Total Questions", str(len(session_questions)))
     summary_table.add_row("Score", f"{correct_count}/{len(session_questions)} ({score_pct}%)")
-    
+
     avg_time = round(sum(r.time_spent_seconds for r in records) / len(records), 1) if records else 0
     summary_table.add_row("Avg Time Per Question", f"{avg_time}s")
-    
+
     switched_count = sum(1 for r in records if r.switched_answer)
     summary_table.add_row("Switched Answers", str(switched_count))
 
@@ -318,6 +360,7 @@ def main():
     # Auto-sync telemetry to SQLite mirror
     try:
         from tools.study_db import sync_db
+
         sync_db(history_path=Path(args.history), qbank_path=Path(args.qbank))
     except Exception:
         pass
@@ -325,4 +368,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

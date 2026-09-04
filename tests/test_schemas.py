@@ -1,5 +1,6 @@
 import pytest
-from tools.schemas import QBankQuestion, HistoryRecord
+
+from pdf_school.schemas import HistoryRecord, QBankQuestion
 
 
 def test_qbank_question_validates_correct_key():
@@ -39,5 +40,6 @@ def test_history_record_flexible_fsrs_state():
         time_spent_seconds=12.5,
         fsrs_state={"state": 1, "reps": 3, "due": "2026-09-04T00:00:00Z"},
     )
+    assert rec.fsrs_state is not None
     assert rec.fsrs_state["state"] == 1
     assert rec.fsrs_state["due"] == "2026-09-04T00:00:00Z"

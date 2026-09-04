@@ -1,7 +1,7 @@
 import asyncio
-from pathlib import Path
-from tools.schemas import QBankQuestion
-from tools.tutor_tui import TutorTUIApp, AVAILABLE_THEMES
+
+from pdf_school.schemas import QBankQuestion
+from pdf_school.tui.app import AVAILABLE_THEMES, TutorTUIApp
 
 
 def test_tui_app_headless_mount_and_theme_cycling(tmp_path):
@@ -30,7 +30,7 @@ def test_tui_app_headless_mount_and_theme_cycling(tmp_path):
             mode="tutor",
             history_path=str(hist_file),
         )
-        async with app.run_test() as pilot:
+        async with app.run_test():
             # Check initial mount
             assert app.current_idx == 0
             assert len(app.questions) == 1
@@ -60,6 +60,7 @@ def test_tui_app_headless_mount_and_theme_cycling(tmp_path):
             # Test tabs switching
             app.action_toggle_source()
             from textual.widgets import TabbedContent
+
             tabs = app.query_one("#tabs-view", TabbedContent)
             assert tabs.active == "tab-source"
 
@@ -74,4 +75,3 @@ def test_tui_app_headless_mount_and_theme_cycling(tmp_path):
             assert tabs.active == "tab-breakdown"
 
     asyncio.run(run_headless())
-

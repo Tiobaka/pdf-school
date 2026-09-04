@@ -1,5 +1,13 @@
-from tools.qbank_forge import append_to_qbank, build_forge_prompt, validate_question_flaws
-from tools.schemas import ContentChunk, ExamStyleProfile, QBankQuestion
+import json
+from unittest.mock import patch
+
+from pdf_school.engine.qbank_forge import (
+    append_to_qbank,
+    auto_forge_questions,
+    build_forge_prompt,
+    validate_question_flaws,
+)
+from pdf_school.schemas import ContentChunk, ExamStyleProfile, QBankQuestion
 
 
 def test_build_forge_prompt_track_b():
@@ -57,7 +65,6 @@ def test_validate_question_flaws_distinguishes_vignette_from_leadin():
     assert any("negative stem" in f for f in flaws_neg)
 
 
-
 def test_append_to_qbank(tmp_path):
     qbank_file = tmp_path / "qbank.jsonl"
     q = QBankQuestion(
@@ -88,10 +95,6 @@ def test_append_to_qbank(tmp_path):
     # Second insert of same ID should be skipped
     res_duplicate = append_to_qbank(q, str(qbank_file))
     assert res_duplicate is False
-
-
-from unittest.mock import patch
-import json
 
 
 def test_auto_forge_questions(tmp_path):
@@ -128,8 +131,9 @@ def test_auto_forge_questions(tmp_path):
         },
     }
 
-    with patch("tools.qbank_forge.generate_structured_json", return_value=mock_response):
-        from tools.qbank_forge import auto_forge_questions
+    with patch(
+        "pdf_school.engine.qbank_forge.generate_structured_json", return_value=mock_response
+    ):
         success = auto_forge_questions(
             chunk_file=str(chunks_file),
             count=1,
@@ -139,3 +143,40 @@ def test_auto_forge_questions(tmp_path):
         assert success == 1
         assert qbank_file.exists()
 
+
+def test_build_forge_prompt_track_a():
+    chunk = ContentChunk(
+        chunk_id="chunk_2",
+        source_file="sources/test.pdf",
+        page_start=1,
+        page_end=1,
+        text="Cardiology notes",
+    )
+    prof = ExamStyleProfile(
+        style_name="professor_style",
+        stem_type="short_vignette",
+        option_count=5,
+        allows_negative_stems=False,
+        exemplars=[{"question": "1. Example question?\nA. 1\nB. 2"}],
+    )
+    prompt = build_forge_prompt(chunk, style_profile=prof)
+    assert "Track A - Professor Alignment" in prompt
+    assert "short_vignette" in prompt
+
+
+def test_validate_question_flaws_grammatical_and_outliers():
+    flawed_q = {
+        "options": {
+            "A": "A very long detailed and comprehensive explanation of why this option is completely correct and includes all relevant pathophysiological criteria for clinical diagnosis",
+            "B": "Short",
+            "C": "Brief",
+            "D": "Tiny",
+        },
+        "correct_key": "A",
+        "lead_in": "The patient has an condition that requires management",
+        "vignette": "Clinical vignette...",
+        "distractor_analysis": {"A": "ok", "B": "no", "C": "no", "D": "no"},
+    }
+    flaws = validate_question_flaws(flawed_q)
+    assert any("question mark" in f for f in flaws)
+    assert any("Length cue flaw" in f for f in flaws)

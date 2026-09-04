@@ -20,7 +20,7 @@ import html
 import json
 import urllib.error
 import urllib.request
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from rich.console import Console
 
@@ -34,7 +34,7 @@ DEFAULT_TSV = str(PROJECT_ROOT / "data" / "anki_cards.tsv")
 console = Console()
 
 
-def invoke_ankiconnect(action: str, **params) -> Dict[str, Any]:
+def invoke_ankiconnect(action: str, **params) -> Any:
     url = "http://localhost:8765"
     payload = json.dumps({"action": action, "params": params, "version": 6}).encode("utf-8")
     req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
@@ -45,15 +45,25 @@ def invoke_ankiconnect(action: str, **params) -> Dict[str, Any]:
                 raise RuntimeError(f"AnkiConnect Error: {data['error']}")
             return data.get("result")
     except urllib.error.URLError as e:
-        raise ConnectionError(f"Could not connect to AnkiConnect at {url}. Ensure Anki is running with the AnkiConnect add-on.") from e
+        raise ConnectionError(
+            f"Could not connect to AnkiConnect at {url}. Ensure Anki is running with the AnkiConnect add-on."
+        ) from e
 
 
-def load_questions(qbank_path: str = "data/qbank.jsonl") -> List[QBankQuestion]:
+def check_ankiconnect_health() -> bool:
+    try:
+        res = invoke_ankiconnect("version")
+        return res is not None
+    except Exception:
+        return False
+
+
+def load_questions(qbank_path: str = "data/qbank.jsonl") -> list[QBankQuestion]:
     questions = []
     path = Path(qbank_path)
     if not path.exists():
         return []
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             if not line.strip():
                 continue
@@ -64,7 +74,7 @@ def load_questions(qbank_path: str = "data/qbank.jsonl") -> List[QBankQuestion]:
     return questions
 
 
-def export_to_tsv(questions: List[QBankQuestion], output_tsv: str = "data/anki_cards.tsv") -> int:
+def export_to_tsv(questions: list[QBankQuestion], output_tsv: str = "data/anki_cards.tsv") -> int:
     out_path = Path(output_tsv)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -72,13 +82,17 @@ def export_to_tsv(questions: List[QBankQuestion], output_tsv: str = "data/anki_c
     with open(out_path, "w", encoding="utf-8") as f:
         for q in questions:
             # Card 1: Question Vignette -> Answer & Rationale
-            opts_formatted = "<br>".join([f"<b>{k})</b> {html.escape(v)}" for k, v in sorted(q.options.items())])
+            opts_formatted = "<br>".join(
+                [f"<b>{k})</b> {html.escape(v)}" for k, v in sorted(q.options.items())]
+            )
             front = f"<h3>[{html.escape(q.topic)}] {html.escape(q.subtopic or '')}</h3><p>{html.escape(q.vignette)}</p><p><b>{html.escape(q.lead_in)}</b></p><p>{opts_formatted}</p>"
-            
+
             back = f"<h2 style='color:green;'>Answer: ({q.correct_key}) {html.escape(q.options.get(q.correct_key, ''))}</h2>"
             back += f"<p><b>Educational Objective:</b> {html.escape(q.educational_objective)}</p>"
-            
-            distractor_html = "<br>".join([f"<b>({k})</b> {html.escape(v)}" for k, v in sorted(q.distractor_analysis.items())])
+
+            distractor_html = "<br>".join(
+                [f"<b>({k})</b> {html.escape(v)}" for k, v in sorted(q.distractor_analysis.items())]
+            )
             back += f"<hr><p><small>{distractor_html}</small></p>"
 
             # Clean tabs and newlines for TSV
@@ -92,15 +106,17 @@ def export_to_tsv(questions: List[QBankQuestion], output_tsv: str = "data/anki_c
     return count
 
 
-def sync_to_ankiconnect(questions: List[QBankQuestion], deck_name: str = "PDF-School") -> int:
+def sync_to_ankiconnect(questions: list[QBankQuestion], deck_name: str = "PDF-School") -> int:
     # 1. Create deck if not exists
     invoke_ankiconnect("createDeck", deck=deck_name)
 
     notes = []
     for q in questions:
-        opts_formatted = "<br>".join([f"<b>{k})</b> {html.escape(v)}" for k, v in sorted(q.options.items())])
+        opts_formatted = "<br>".join(
+            [f"<b>{k})</b> {html.escape(v)}" for k, v in sorted(q.options.items())]
+        )
         front = f"<h3>[{html.escape(q.topic)}]</h3><p>{html.escape(q.vignette)}</p><p><b>{html.escape(q.lead_in)}</b></p><p>{opts_formatted}</p>"
-        
+
         back = f"<h2 style='color:green;'>Answer: ({q.correct_key}) {html.escape(q.options.get(q.correct_key, ''))}</h2>"
         back += f"<p><b>Takeaway:</b> {html.escape(q.educational_objective)}</p>"
 
@@ -112,7 +128,7 @@ def sync_to_ankiconnect(questions: List[QBankQuestion], deck_name: str = "PDF-Sc
                 "Back": back,
             },
             "tags": ["PDF-School", q.topic.replace(" ", "_")],
-            "options": {"allowDuplicate": False}
+            "options": {"allowDuplicate": False},
         }
         notes.append(note)
 
@@ -131,7 +147,9 @@ def main():
     p_tsv.add_argument("--output", default=DEFAULT_TSV, help="Output TSV path")
 
     # AnkiConnect Sync
-    p_sync = subparsers.add_parser("sync", help="Push questions directly to running Anki via AnkiConnect")
+    p_sync = subparsers.add_parser(
+        "sync", help="Push questions directly to running Anki via AnkiConnect"
+    )
     p_sync.add_argument("--qbank", default=DEFAULT_QBANK, help="Path to qbank.jsonl")
     p_sync.add_argument("--deck", default="PDF-School", help="Target deck name in Anki")
 
@@ -143,14 +161,20 @@ def main():
 
     if args.command == "tsv":
         count = export_to_tsv(questions, args.output)
-        console.print(f"[green]✅ Exported {count} cards to TSV at: [bold]{args.output}[/bold][/green]")
+        console.print(
+            f"[green]✅ Exported {count} cards to TSV at: [bold]{args.output}[/bold][/green]"
+        )
     elif args.command == "sync":
         try:
             added = sync_to_ankiconnect(questions, args.deck)
-            console.print(f"[green]🎉 Successfully synced {added} cards to Anki deck '[bold]{args.deck}[/bold]'![/green]")
+            console.print(
+                f"[green]🎉 Successfully synced {added} cards to Anki deck '[bold]{args.deck}[/bold]'![/green]"
+            )
         except (ConnectionError, RuntimeError) as ce:
             console.print(f"[red]❌ Anki sync failed:[/red] {ce}")
-            console.print("[blue]Tip: You can always use 'tools/anki_bridge.py tsv' to export a file for manual import.[/blue]")
+            console.print(
+                "[blue]Tip: You can always use 'tools/anki_bridge.py tsv' to export a file for manual import.[/blue]"
+            )
             sys.exit(1)
 
 

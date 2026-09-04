@@ -1,13 +1,19 @@
-from pathlib import Path
 import pymupdf
-from tools.extract import extract_office_with_markitdown, extract_pdf_with_pymupdf4llm
+
+from pdf_school.core.extract import (
+    extract_office_with_markitdown,
+    extract_pdf_with_pymupdf4llm,
+)
 
 
 def test_extract_pdf_with_pymupdf4llm(tmp_path):
     pdf_path = tmp_path / "pharmacology.pdf"
     doc = pymupdf.open()
     page = doc.new_page()
-    page.insert_text((50, 50), "# Antihypertensive Agents\n\nACE inhibitors prevent the conversion of angiotensin I to angiotensin II.")
+    page.insert_text(
+        (50, 50),
+        "# Antihypertensive Agents\n\nACE inhibitors prevent the conversion of angiotensin I to angiotensin II.",
+    )
     doc.save(str(pdf_path))
     doc.close()
 
@@ -22,7 +28,10 @@ def test_extract_pdf_with_pymupdf4llm(tmp_path):
 
 def test_extract_office_with_markitdown(tmp_path):
     txt_path = tmp_path / "lecture_notes.txt"
-    txt_path.write_text("# Cardiology Notes\n\nAortic stenosis presents with a crescendo-decrescendo systolic ejection murmur.", encoding="utf-8")
+    txt_path.write_text(
+        "# Cardiology Notes\n\nAortic stenosis presents with a crescendo-decrescendo systolic ejection murmur.",
+        encoding="utf-8",
+    )
 
     out_dir = tmp_path / "content"
     chunks = extract_office_with_markitdown(txt_path, out_dir, target_chunk_words=5)

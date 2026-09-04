@@ -1,0 +1,698 @@
+{
+  "exam_target": "Final de Clínica Médica II",
+  "start_date": "2026-09-01",
+  "exam_date": "2026-10-11",
+  "total_calendar_days": 41,
+  "total_active_days": 35,
+  "daily_study_hours": 4.0,
+  "total_capacity_hours": 140.0,
+  "milestones": [
+    {
+      "id": "milestone_1",
+      "name": "Milestone Exam 1 (Phase 1 Check)",
+      "date": "2026-09-27",
+      "day": 23
+    },
+    {
+      "id": "milestone_2",
+      "name": "Milestone Exam 2 (Phase 2 Check)",
+      "date": "2026-10-04",
+      "day": 29
+    },
+    {
+      "id": "milestone_3",
+      "name": "Milestone Exam 3 (Phase 3 Final Mock)",
+      "date": "2026-10-08",
+      "day": 33
+    },
+    {
+      "id": "final_exam",
+      "name": "FINAL EXAM DAY",
+      "date": "2026-10-11",
+      "day": null
+    }
+  ],
+  "days": [
+    {
+      "date": "2026-09-01",
+      "phase": 1,
+      "day_num": 1,
+      "is_rest": false,
+      "module": "Reumatología",
+      "topic": "Artritis Reumatoidea (AR) — Semiología, Criterios ACR/EULAR 2010, Signos Radiológicos Tempranos",
+      "target_vignettes": 18,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (ACR/EULAR 2010 >= 6/10)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Distribución articular)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "ACR/EULAR 2010 >= 6/10; RF Neg (<20), Débil (20-80), Alto (>80 UI/mL); Rx edema partes blandas (<6m) vs erosiones (>2a)."
+    },
+    {
+      "date": "2026-09-02",
+      "phase": 1,
+      "day_num": 2,
+      "is_rest": false,
+      "module": "Reumatología",
+      "topic": "AR Farmacoterapia, Treat-to-Target (DAS28), Manifestaciones Extraarticulares y Biológicos",
+      "target_vignettes": 18,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Protocolo Treat-to-Target)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Screening biológicos)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "DAS28: Remisión (<2.6), Baja (2.6-3.2), Mod (3.2-5.1), Alta (>5.1). MTX inicio (10-20 mg/sem) + Ácido fólico (5 mg/sem). CI Biológicos: NYHA III-IV, TBC, cáncer <5a."
+    },
+    {
+      "date": "2026-09-03",
+      "phase": 1,
+      "day_num": 3,
+      "is_rest": false,
+      "module": "Reumatología",
+      "topic": "Espondiloartropatías Seronegativas (EASN) — Espondilitis Anquilosante & Artritis Psoriásica",
+      "target_vignettes": 18,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Criterios CASPAR >= 3 & NY modificado)",
+        "[HY_SUMMARY_MATRIX] 1.0h (EA vs APs vs AR)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "CASPAR >= 3 pts; EA: 1 clínico + 1 radiológico (sacroileítis >= 2 bilat o 3-4 unilat); Dolor lumbar inflamatorio: <45a, mejora con ejercicio, no cede con reposo, rigidez matinal prolongada."
+    },
+    {
+      "date": "2026-09-04",
+      "phase": 1,
+      "day_num": 4,
+      "is_rest": false,
+      "module": "Reumatología",
+      "topic": "Artritis Reactiva (Síndrome de Reiter) & Artropatías Enteropáticas",
+      "target_vignettes": 18,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Flujo diagnóstico trigger pathogen)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Querato dermoblenorrágica, balanitis circinada)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Diferenciar sinovitis reactiva estéril de artritis séptica; HLA-B27 80% en Reiter; 1ra línea AINEs a dosis plenas."
+    },
+    {
+      "date": "2026-09-05",
+      "phase": 1,
+      "day_num": null,
+      "is_rest": true,
+      "module": "Descanso",
+      "topic": "DÍA DE DESCANSO PROGRAMADO — RECUPERACIÓN NEUROLÓGICA",
+      "target_vignettes": 0,
+      "target_hours": 0.0,
+      "tasks": [
+        "CERO CARGA DE ESTUDIO"
+      ],
+      "milestone_checkpoint": "Recuperación cognitiva semanal obligatoria."
+    },
+    {
+      "date": "2026-09-06",
+      "phase": 1,
+      "day_num": 5,
+      "is_rest": false,
+      "module": "Reumatología",
+      "topic": "Lupus Eritematoso Sistémico (LES) — Criterios EULAR/ACR 2019, Perfil de Anticuerpos",
+      "target_vignettes": 126,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (EULAR/ACR 2019: ANA >= 1:80 + >= 10 pts)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Matriz autoanticuerpos)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Entrada ANA >= 1:80; Clasificación >= 10 pts; Anti-dsDNA (actividad/nefritis); Anti-Sm (alta especificidad); Anti-Ro (bloqueo AV congénito, lupus neonatal)."
+    },
+    {
+      "date": "2026-09-07",
+      "phase": 1,
+      "day_num": 6,
+      "is_rest": false,
+      "module": "Reumatología",
+      "topic": "Nefritis Lúpica: Estadificación y Manejo; Lupus en el Embarazo",
+      "target_vignettes": 126,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (ISN/RPS Clases I-VI)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Seguridad en embarazo)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Biopsia renal si proteinuria > 0.5 g/24h; Clase IV proliferativa difusa es la más grave; Inducción pulsos metilprednisolona + CFM/MMF."
+    },
+    {
+      "date": "2026-09-08",
+      "phase": 1,
+      "day_num": 7,
+      "is_rest": false,
+      "module": "Reumatología",
+      "topic": "Vasculitis Sistémicas (Grandes, Medianos, Pequeños Vasos - CHCC 2012) & Polimialgia Reumática (PMR)",
+      "target_vignettes": 126,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Algoritmo ANCA c-ANCA/PR3 vs p-ANCA/MPO)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Compromiso orgánico y respuesta a corticoides)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "ACG: biopsia arteria temporal, asociación con PMR 30%, VSG ~100 mm/h; GPA: c-ANCA/PR3+; PAM: p-ANCA/MPO+; PAN respeta pulmón."
+    },
+    {
+      "date": "2026-09-09",
+      "phase": 1,
+      "day_num": 8,
+      "is_rest": false,
+      "module": "Reumatología",
+      "topic": "Miopatías Inflamatorias (DM, PM, MCI, MNIM) & Esclerodermia (SSc)",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Árbol diagnóstico CPK -> EMG -> Biopsia)",
+        "[HY_SUMMARY_MATRIX] 1.0h (DM vs PM vs IBM + SSc difusa vs limitada)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "DM: atrofia perifascicular CD4+ + pápulas de Gottron + screening cáncer; PM: endomisial CD8+; SSc: capilaroscopía, Raynaud como marcador precoz."
+    },
+    {
+      "date": "2026-09-10",
+      "phase": 1,
+      "day_num": 9,
+      "is_rest": false,
+      "module": "Reumatología",
+      "topic": "Artrosis, Fibromialgia, Gota, Pseudogota, Artritis Séptica & Osteoporosis",
+      "target_vignettes": 38,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (20 casos)",
+        "[ALGORITHM_MAP] 1.0h (Árbol de líquido sinovial >50.000 leuco séptico)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Gota vs CPPD birrefringencia; DMO T-score <= -2.5)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Séptica: >50.000 leuco/mm3, >75% PMN -> drenaje + ATB IV; Meta ácido úrico <6 mg/dL; NO suspender ni iniciar alopurinol en ataque agudo."
+    },
+    {
+      "date": "2026-09-11",
+      "phase": 1,
+      "day_num": 10,
+      "is_rest": false,
+      "module": "Neumonología",
+      "topic": "Fisiología Respiratoria, Espirometría & Curvas Flujo-Volumen",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Algoritmo ATS/ERS: FEV1/FVC < LIN -> severidad -> BD >= 12% y 200 mL)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Obstructivo vs Restrictivo TLC < LIN)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Obstructivo: FEV1/FVC < LIN (o < 0.70); Reversibilidad: delta FEV1 o FVC >= 12% Y >= 200 mL; DLCO sensible para intersticiopatía temprana."
+    },
+    {
+      "date": "2026-09-12",
+      "phase": 1,
+      "day_num": null,
+      "is_rest": true,
+      "module": "Descanso",
+      "topic": "DÍA DE DESCANSO PROGRAMADO — RECUPERACIÓN NEUROLÓGICA",
+      "target_vignettes": 0,
+      "target_hours": 0.0,
+      "tasks": [
+        "CERO CARGA DE ESTUDIO"
+      ],
+      "milestone_checkpoint": "Recuperación cognitiva semanal obligatoria."
+    },
+    {
+      "date": "2026-09-13",
+      "phase": 1,
+      "day_num": 11,
+      "is_rest": false,
+      "module": "Neumonología",
+      "topic": "Asma Bronquial — Guías GINA (Escalones 1-5), Farmacología Inhalatoria y Mantenimiento",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (GINA Track 1 [MART ICS-Formoterol] vs Track 2)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Matriz de dosis ICS)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "GINA 4 preguntas de control; SABA en monoterapia está CONTRAINDICADO; Step-down requiere 3 meses de control estable."
+    },
+    {
+      "date": "2026-09-14",
+      "phase": 1,
+      "day_num": 12,
+      "is_rest": false,
+      "module": "Neumonología",
+      "topic": "Crisis Asmática en Guardia (Manejo Agudo en Urgencias)",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Algoritmo agudo: SABA + SAMA neb + Corticoides sistémicos + MgSO4)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Clasificación de severidad y pCO2 normal como trampa)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Crisis severa: SatO2 < 92%, PEF < 50%, uso músculos accesorios; Trampa gasométrica: normocapnia/hipercapnia indica fatiga respiratoria inminente."
+    },
+    {
+      "date": "2026-09-15",
+      "phase": 1,
+      "day_num": 13,
+      "is_rest": false,
+      "module": "Neumonología",
+      "topic": "EPOC Estable — Clasificación GOLD ABE, Fisiopatología y Mantenimiento",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (GOLD ABE: Grupo A [1 BD], Grupo B [LABA+LAMA], Grupo E [LABA+LAMA +- ICS])",
+        "[HY_SUMMARY_MATRIX] 1.0h (Índice BODE)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "GOLD post-BD FEV1/FVC < 0.70; Grupo E: >= 2 exacerbaciones moderadas o >= 1 internación; Corte de eosinófilos >= 300 para ICS; O2 crónico si PaO2 <= 55."
+    },
+    {
+      "date": "2026-09-16",
+      "phase": 1,
+      "day_num": 14,
+      "is_rest": false,
+      "module": "Neumonología",
+      "topic": "Exacerbación de EPOC & Insuficiencia Respiratoria Hipercápnica",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Protocolo VNI: pH < 7.35, pCO2 > 45)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Criterios de Anthonisen tipo 1-3 y esquemas antibióticos)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Tríada de Anthonisen (disnea, volumen, purulencia); SatO2 objetivo 88-92% para evitar pérdida del drive hipóxico; VNI de primera línea."
+    },
+    {
+      "date": "2026-09-17",
+      "phase": 1,
+      "day_num": 15,
+      "is_rest": false,
+      "module": "Neumonología",
+      "topic": "Neumonía Adquirida en la Comunidad (NAC) & Influenza Complicada",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (CURB-65 y criterios SMART-COP / UTI)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Esquemas antibióticos ambulatorio vs sala vs UTI)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "CURB-65: Confusión, Urea > 42 mg/dL, FR >= 30, TA < 90/60, Edad >= 65; Puntaje 0-1 ambulatorio, 2 sala, >= 3 UTI."
+    },
+    {
+      "date": "2026-09-18",
+      "phase": 1,
+      "day_num": 16,
+      "is_rest": false,
+      "module": "Neumonología",
+      "topic": "Bronquiectasias, SAHOS & Intersticiopatías Pulmonares (EPI / FPI)",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Flujo diagnóstico Nódulo solitario / FPI patrón UIP)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Signos TAC: anillo de sello, tranvía; IAH SAHOS)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Bronquiectasias: índice broncoarterial > 1; FPI: panalización subpleural y estertores en velcro; SAHOS: CPAP si IAH >= 15 o leve sintomático."
+    },
+    {
+      "date": "2026-09-19",
+      "phase": 1,
+      "day_num": null,
+      "is_rest": true,
+      "module": "Descanso",
+      "topic": "DÍA DE DESCANSO PROGRAMADO — RECUPERACIÓN NEUROLÓGICA",
+      "target_vignettes": 0,
+      "target_hours": 0.0,
+      "tasks": [
+        "CERO CARGA DE ESTUDIO"
+      ],
+      "milestone_checkpoint": "Recuperación cognitiva semanal obligatoria."
+    },
+    {
+      "date": "2026-09-20",
+      "phase": 1,
+      "day_num": 17,
+      "is_rest": false,
+      "module": "Neumonología",
+      "topic": "Derrame Pleural, Neumotórax, TEP, Hemoptisis & Cáncer de Pulmón",
+      "target_vignettes": 38,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (20 casos)",
+        "[ALGORITHM_MAP] 1.0h (Criterios de Light -> Empiema pH < 7.20 -> Tubo de avenamiento)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Wells TEP, descompresión neumotórax)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Light: Prot LP/S > 0.5, LDH LP/S > 0.6; Empiema: pH < 7.20, glucosa < 60 mg/dL, pus -> tubo mandatorio; Neumotórax a tensión: aguja 2do EIC LMC."
+    },
+    {
+      "date": "2026-09-21",
+      "phase": 1,
+      "day_num": 18,
+      "is_rest": false,
+      "module": "Endocrinología",
+      "topic": "Eje Hipotálamo-Hipófisis, Adenomas Hipofisarios & Panhipopituitarismo",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Algoritmo hiperprolactinemia PRL > 100)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Secuencia de pérdida hormonal vs reemplazo)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Panhipopituitarismo: 1° Adrenal (Hidrocortisona) SIEMPRE antes de 2° Tiroideo (LT4) para evitar crisis suprarrenal. Prolactina NUNCA se reemplaza."
+    },
+    {
+      "date": "2026-09-22",
+      "phase": 1,
+      "day_num": 19,
+      "is_rest": false,
+      "module": "Endocrinología",
+      "topic": "Tiroides: Hipotiroidismo, Coma Mixedematoso & Tiroiditis",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Algoritmo hipotiroidismo subclínico TSH >= 10)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Dosis LT4: Clínico 1.6 vs Subclínico 1.1 mcg/kg/d; Hashimoto vs De Quervain)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Disparadores de tratamiento en hipotiroidismo subclínico: TSH >= 10, embarazo, bocio, síntomas o anti-TPO+. De Quervain: tiroides dolorosa, VSG muy alta, gammagrafía fría."
+    },
+    {
+      "date": "2026-09-23",
+      "phase": 1,
+      "day_num": 20,
+      "is_rest": false,
+      "module": "Endocrinología",
+      "topic": "Tiroides: Hipertiroidismo, Nódulo Tiroideo & Cáncer de Tiroides",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Flujograma nódulo: TSH -> Eco -> PAAF -> Bethesda)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Papilar vs Folicular vs Medular calcitonina/MEN2)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Bethesda 2=Benigno, 4=Neoplasia folicular (hemitiroidec), 5-6=Maligno (tiroidec total); Gammagrafía: nódulo caliente = benigno hiperfuncionante, frío = punzar."
+    },
+    {
+      "date": "2026-09-24",
+      "phase": 1,
+      "day_num": 21,
+      "is_rest": false,
+      "module": "Endocrinología",
+      "topic": "Glándulas Suprarrenales — Síndrome de Cushing, Addison & Feocromocitoma",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ALGORITHM_MAP] 1.0h (Diagnóstico de Cushing: CLU, Nugent -> ACTH)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Addison primario ACTH alta/hiperpigmentación vs secundario)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Crisis Addisoniana: Hidrocortisona 100 mg IV bolo + SF; Feocromocitoma: alfa-bloqueo antes de beta-bloqueo."
+    },
+    {
+      "date": "2026-09-25",
+      "phase": 1,
+      "day_num": 22,
+      "is_rest": false,
+      "module": "Endocrinología",
+      "topic": "Diabetes Mellitus, Cetoacidosis (CAD), Estado Hiperosmolar (EHNC) & Fosfocálcico",
+      "target_vignettes": 38,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (20 casos)",
+        "[ALGORITHM_MAP] 1.0h (Protocolo CAD/SHH: Suero fisiológico -> K+ -> Insulina)",
+        "[HY_SUMMARY_MATRIX] 1.0h (CAD vs EHNC laboratorio; Hiperparatiroidismo primario)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Potasio en CAD: si K+ < 3.3 mEq/L, FRENAR insulina y pasar K+ IV urgente; Bicarbonato solo si pH < 6.90 tras hidratación."
+    },
+    {
+      "date": "2026-09-26",
+      "phase": 1,
+      "day_num": null,
+      "is_rest": true,
+      "module": "Descanso",
+      "topic": "DÍA DE DESCANSO PROGRAMADO — RECUPERACIÓN NEUROLÓGICA",
+      "target_vignettes": 0,
+      "target_hours": 0.0,
+      "tasks": [
+        "CERO CARGA DE ESTUDIO"
+      ],
+      "milestone_checkpoint": "Recuperación cognitiva semanal obligatoria."
+    },
+    {
+      "date": "2026-09-27",
+      "phase": 2,
+      "day_num": 23,
+      "is_rest": false,
+      "module": "Integración",
+      "topic": "INTEGRACIÓN MULTIMÓDULO Y EXAMEN HITO 1: Reumato + Neumo + Endocrino",
+      "target_vignettes": 50,
+      "target_hours": 4.0,
+      "tasks": [
+        "[PRACTICE_EXAM] 2.5h (50 Preguntas Multiple Choice + 5 Viñetas Cátedra)",
+        "[FLASHCARD_EXTRACTION] 1.5h (Autopsia de errores)"
+      ],
+      "milestone_checkpoint": "Score objetivo >= 75%; triage inmediato de áreas débiles."
+    },
+    {
+      "date": "2026-09-28",
+      "phase": 2,
+      "day_num": 24,
+      "is_rest": false,
+      "module": "Imágenes y Funcional",
+      "topic": "Masterclass de Diagnóstico por Imágenes y Pruebas Funcionales: Rx, TACAR, Espirometría",
+      "target_vignettes": 38,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (20 casos con imágenes)",
+        "[ALGORITHM_MAP] 1.0h (Patrones tomográficos)",
+        "[HY_SUMMARY_MATRIX] 1.0h (Desplazamiento mediastinal atelectasia vs derrame)",
+        "[FLASHCARD_EXTRACTION] 0.5h (15 cards)"
+      ],
+      "milestone_checkpoint": "Atelectasia (tracción ipsilateral) vs Derrame (desvío contralateral); signos directos de bronquiectasias."
+    },
+    {
+      "date": "2026-09-29",
+      "phase": 2,
+      "day_num": 25,
+      "is_rest": false,
+      "module": "Integración",
+      "topic": "Overlap Neumonología + Reumatología: EPI en Colagenopatías, Síndromes Pulmón-Riñón",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ORAL_DEFENSE] 1.5h (Simulación de mesa: hemoptisis + glomerulonefritis)",
+        "[FLASHCARD_EXTRACTION] 1.0h (20 cards)"
+      ],
+      "milestone_checkpoint": "Algoritmo escalonado en hemorragia alveolar + falla renal: ANCA, anti-MBG, broncoscopía, biopsia, pulsos metilprednisolona."
+    },
+    {
+      "date": "2026-09-30",
+      "phase": 2,
+      "day_num": 26,
+      "is_rest": false,
+      "module": "Integración",
+      "topic": "Tríada Endocrino + Metabólico + Cardiovascular: Hipertensión Secundaria y DBT",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ORAL_DEFENSE] 1.5h (Defensa oral: HTA refractaria en paciente joven)",
+        "[FLASHCARD_EXTRACTION] 1.0h (20 cards)"
+      ],
+      "milestone_checkpoint": "Diferencial de HTA secundaria: Cushing (cortisol), Acromegalia (GH/IGF-1), Feo (catecolaminas), Conn (aldosterona)."
+    },
+    {
+      "date": "2026-10-01",
+      "phase": 2,
+      "day_num": 27,
+      "is_rest": false,
+      "module": "Integración",
+      "topic": "Matriz Maestra de Reumatología Autoinmune: Mono/Oligo/Poliartritis",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ORAL_DEFENSE] 1.5h (Mesa oral AR vs APs)",
+        "[FLASHCARD_EXTRACTION] 1.0h (20 cards)"
+      ],
+      "milestone_checkpoint": "Distinción semiológica y terapéutica precisa entre AR, APs, LES, SSc y microcristales."
+    },
+    {
+      "date": "2026-10-02",
+      "phase": 2,
+      "day_num": 28,
+      "is_rest": false,
+      "module": "Integración",
+      "topic": "Emergencias Respiratorias: Asma Severa, EPOC Agudizado, Hemoptisis Masiva, TEP de Alto Riesgo",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos)",
+        "[ORAL_DEFENSE] 1.5h (Mesa oral emergencias 60 minutos)",
+        "[FLASHCARD_EXTRACTION] 1.0h (20 cards)"
+      ],
+      "milestone_checkpoint": "Protocolo TEP de alto riesgo trombolisis; VNI criterios en EPOC; hemoptisis masiva decúbito sobre lado afectado."
+    },
+    {
+      "date": "2026-10-03",
+      "phase": 2,
+      "day_num": null,
+      "is_rest": true,
+      "module": "Descanso",
+      "topic": "DÍA DE DESCANSO PROGRAMADO — RECUPERACIÓN NEUROLÓGICA",
+      "target_vignettes": 0,
+      "target_hours": 0.0,
+      "tasks": [
+        "CERO CARGA DE ESTUDIO"
+      ],
+      "milestone_checkpoint": "Recuperación cognitiva semanal obligatoria."
+    },
+    {
+      "date": "2026-10-04",
+      "phase": 2,
+      "day_num": 29,
+      "is_rest": false,
+      "module": "Integración",
+      "topic": "INTEGRACIÓN Y EXAMEN HITO 2: Simulación Completa de Medio Término (Choice + Oral)",
+      "target_vignettes": 60,
+      "target_hours": 4.0,
+      "tasks": [
+        "[PRACTICE_EXAM] 2.5h (60 Multiple Choice + 6 Viñetas desarrollo)",
+        "[FLASHCARD_EXTRACTION] 1.5h (Autopsia y deck de remediación)"
+      ],
+      "milestone_checkpoint": "Score objetivo >= 82%; cero errores en preguntas clásicas repetidas."
+    },
+    {
+      "date": "2026-10-05",
+      "phase": 3,
+      "day_num": 30,
+      "is_rest": false,
+      "module": "Remediación",
+      "topic": "Remediación Dirigida 1: Puntos Débiles en Reumatología & Neumonología",
+      "target_vignettes": 36,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 preguntas sobre log histórico de errores)",
+        "[HY_SUMMARY_MATRIX] 1.5h (Flujogramas rápidos)",
+        "[FLASHCARD_EXTRACTION] 1.0h (100 cards de alto rendimiento)"
+      ],
+      "milestone_checkpoint": "100% precisión en criterios de inoperabilidad cáncer de pulmón, ANCA-C vs ANCA-P, biopsia muscular."
+    },
+    {
+      "date": "2026-10-06",
+      "phase": 3,
+      "day_num": 31,
+      "is_rest": false,
+      "module": "Remediación",
+      "topic": "Remediación Dirigida 2: Puntos Débiles en Endocrinología y Protocolos de Guardia",
+      "target_vignettes": 45,
+      "target_hours": 4.0,
+      "tasks": [
+        "[VIGNETTE_DRILL] 1.5h (18 casos de emergencia)",
+        "[HY_SUMMARY_MATRIX] 1.5h (Matrices de protocolos)",
+        "[FLASHCARD_EXTRACTION] 1.0h (100 cards de endocrino)"
+      ],
+      "milestone_checkpoint": "100% precisión en tormenta tiroidea 4 pasos, crisis addisoniana y titulación K+/insulina en CAD."
+    },
+    {
+      "date": "2026-10-07",
+      "phase": 3,
+      "day_num": 32,
+      "is_rest": false,
+      "module": "Oral Boards",
+      "topic": "Simulacro Integral de Mesa Oral: Presentación de Casos en Tiempo Real",
+      "target_vignettes": 47,
+      "target_hours": 4.0,
+      "tasks": [
+        "[ORAL_DEFENSE] 2.5h (6 casos completos de examen)",
+        "[FLASHCARD_EXTRACTION] 1.5h (Fórmulas y números: Light, CURB, BODE, DAS28)"
+      ],
+      "milestone_checkpoint": "Fluidez clínica inmediata: Anamnesis -> Examen físico -> Laboratorio específico -> Tratamiento."
+    },
+    {
+      "date": "2026-10-08",
+      "phase": 3,
+      "day_num": 33,
+      "is_rest": false,
+      "module": "Examen Final Mock",
+      "topic": "EXAMEN FINAL COMPLETO SIMULADO 3: Alta Fidelidad Real Cátedra",
+      "target_vignettes": 50,
+      "target_hours": 4.0,
+      "tasks": [
+        "[PRACTICE_EXAM] 2.5h (50 Multiple Choice + 5 Desarrollo)",
+        "[VIGNETTE_DRILL] 1.5h (Autopsia inmediata y parche definitivo)"
+      ],
+      "milestone_checkpoint": "Score final objetivo >= 88%; cero errores no forzados en dosis y contraindicaciones."
+    },
+    {
+      "date": "2026-10-09",
+      "phase": 3,
+      "day_num": 34,
+      "is_rest": false,
+      "module": "Consolidación",
+      "topic": "Speed-Run de Criterios Diagnósticos y Repaso de Matrices Maestras",
+      "target_vignettes": 0,
+      "target_hours": 4.0,
+      "tasks": [
+        "[HY_SUMMARY_MATRIX] 2.5h (Repaso visual matrices consolidadas)",
+        "[FLASHCARD_EXTRACTION] 1.5h (Última pasada tarjetas trampa)"
+      ],
+      "milestone_checkpoint": "Consolidación mental completa de todas las vías diagnósticas de Medicina Interna II."
+    },
+    {
+      "date": "2026-10-10",
+      "phase": 3,
+      "day_num": 35,
+      "is_rest": false,
+      "module": "Priming Pre-Examen",
+      "topic": "Calibración Pre-Examen y Descanso (Máximo 2 Horas)",
+      "target_vignettes": 0,
+      "target_hours": 2.0,
+      "tasks": [
+        "[FLASHCARD_EXTRACTION] 1.0h (Repaso liviano de dosis y banderas rojas)",
+        "[ORAL_DEFENSE] 1.0h (Ensayos mentales de apertura)"
+      ],
+      "milestone_checkpoint": "Seguridad, mente despejada y descanso temprano."
+    },
+    {
+      "date": "2026-10-11",
+      "phase": 3,
+      "day_num": null,
+      "is_rest": false,
+      "module": "DÍA DEL EXAMEN",
+      "topic": "DÍA DEL EXAMEN FINAL: CLÍNICA MÉDICA II",
+      "target_vignettes": 0,
+      "target_hours": 0.0,
+      "tasks": [
+        "EJECUCIÓN DEL EXAMEN — APROBAR CON EXCELENCIA"
+      ],
+      "milestone_checkpoint": "ÉXITO ACADÉMICO."
+    }
+  ]
+}

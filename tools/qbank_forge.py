@@ -16,30 +16,27 @@ if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
 
 
 import argparse
-import hashlib
 import json
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
 
 sys.path.insert(0, str(PROJECT_ROOT))
+from tools.llm_client import generate_structured_json
 from tools.schemas import ContentChunk, ExamStyleProfile, QBankQuestion
-
-
-
 
 console = Console()
 
 
-def build_forge_prompt(chunk: ContentChunk, style_profile: Optional[ExamStyleProfile] = None) -> str:
+def build_forge_prompt(chunk: ContentChunk, style_profile: ExamStyleProfile | None = None) -> str:
     """
     Constructs a high-precision prompt for LLM or Antigravity subagent.
     """
-    figures_info = f"Attached Figures: {', '.join(chunk.figures)}" if chunk.figures else "No figures attached."
-    source_context = f"Source: {chunk.source_file} (Pages {chunk.page_start}-{chunk.page_end})\nSection: {chunk.section_title or 'General'}\n{figures_info}\n\nContent Chunk:\n\"\"\"\n{chunk.text}\n\"\"\""
+    figures_info = (
+        f"Attached Figures: {', '.join(chunk.figures)}" if chunk.figures else "No figures attached."
+    )
+    source_context = f'Source: {chunk.source_file} (Pages {chunk.page_start}-{chunk.page_end})\nSection: {chunk.section_title or "General"}\n{figures_info}\n\nContent Chunk:\n"""\n{chunk.text}\n"""'
 
     if style_profile and style_profile.style_name != "default_mastery":
         # Track A: Professor Style Alignment
@@ -56,8 +53,8 @@ def build_forge_prompt(chunk: ContentChunk, style_profile: Optional[ExamStylePro
 ### Target Exam Profile (Track A - Professor Alignment):
 - Question Stem Style: {style_profile.stem_type}
 - Option Count: {style_profile.option_count} options (A through {chr(64 + style_profile.option_count)})
-- Negative Stems (e.g. EXCEPT/NOT): {'Permitted if characteristic' if style_profile.allows_negative_stems else 'Avoid'}
-- Multiple Selection / Composite: {'Permitted if characteristic' if style_profile.allows_multiple_select else 'Avoid'}
+- Negative Stems (e.g. EXCEPT/NOT): {"Permitted if characteristic" if style_profile.allows_negative_stems else "Avoid"}
+- Multiple Selection / Composite: {"Permitted if characteristic" if style_profile.allows_multiple_select else "Avoid"}
 {exemplar_text}
 
 Output MUST be a single valid JSON object adhering to this schema:
@@ -115,13 +112,15 @@ Output MUST be a single valid JSON object adhering to this schema:
     return prompt.strip()
 
 
-def validate_question_flaws(question_data: Dict[str, Any], allow_negative: bool = False) -> List[str]:
+def validate_question_flaws(
+    question_data: dict[str, Any], allow_negative: bool = False
+) -> list[str]:
     """
     Validates question against NBME item-writing standards and schema requirements.
     Returns a list of warnings / flaw messages.
     """
     flaws = []
-    
+
     # 1. Check correct key exists
     options = question_data.get("options", {})
     correct_key = question_data.get("correct_key", "")
@@ -137,12 +136,19 @@ def validate_question_flaws(question_data: Dict[str, Any], allow_negative: bool 
     if not allow_negative:
         for bad_word in [r"\bEXCEPT\b", r"\bNOT\b", r"\bLEAST\b", r"\bINCORRECT\b"]:
             if re.search(bad_word, lead_in):
-                flaws.append(f"Contains negative stem '{bad_word}' in lead-in, which violates NBME guidelines")
+                flaws.append(
+                    f"Contains negative stem '{bad_word}' in lead-in, which violates NBME guidelines"
+                )
 
     # 4. Check 'all of the above' / 'none of the above'
     for opt_key, opt_text in options.items():
-        if any(forbidden in opt_text.lower() for forbidden in ["all of the above", "none of the above", "both a and b"]):
-            flaws.append(f"Option {opt_key} uses '{opt_text}', which compromises discrimination power")
+        if any(
+            forbidden in opt_text.lower()
+            for forbidden in ["all of the above", "none of the above", "both a and b"]
+        ):
+            flaws.append(
+                f"Option {opt_key} uses '{opt_text}', which compromises discrimination power"
+            )
 
     # 5. Length outlier check (correct answer length vs shortest distractor)
     if correct_key in options:
@@ -151,7 +157,9 @@ def validate_question_flaws(question_data: Dict[str, Any], allow_negative: bool 
         if distractor_lens:
             min_distractor = min(distractor_lens)
             if min_distractor > 0 and correct_len >= 3 * min_distractor and correct_len > 15:
-                flaws.append(f"Length cue flaw: correct option ({correct_len} words) is >= 3x longer than shortest distractor ({min_distractor} words)")
+                flaws.append(
+                    f"Length cue flaw: correct option ({correct_len} words) is >= 3x longer than shortest distractor ({min_distractor} words)"
+                )
 
     # 6. Distractor analysis completeness
     distractor_analysis = question_data.get("distractor_analysis", {})
@@ -165,25 +173,29 @@ def validate_question_flaws(question_data: Dict[str, Any], allow_negative: bool 
 def append_to_qbank(
     question: QBankQuestion,
     qbank_path: str = "data/qbank.jsonl",
-    existing_ids: Optional[Set[str]] = None,
+    existing_ids: set[str] | None = None,
 ) -> bool:
     out_file = Path(qbank_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
     if existing_ids is not None:
         if question.id in existing_ids:
-            console.print(f"[yellow]⚠️ Question ID '{question.id}' already exists in cache. Skipping duplicate.[/yellow]")
+            console.print(
+                f"[yellow]⚠️ Question ID '{question.id}' already exists in cache. Skipping duplicate.[/yellow]"
+            )
             return False
         existing_ids.add(question.id)
     elif out_file.exists():
-        with open(out_file, "r", encoding="utf-8") as f:
+        with open(out_file, encoding="utf-8") as f:
             for line in f:
                 if not line.strip():
                     continue
                 try:
                     existing = json.loads(line)
                     if existing.get("id") == question.id:
-                        console.print(f"[yellow]⚠️ Question ID '{question.id}' already exists in {qbank_path}. Skipping duplicate.[/yellow]")
+                        console.print(
+                            f"[yellow]⚠️ Question ID '{question.id}' already exists in {qbank_path}. Skipping duplicate.[/yellow]"
+                        )
                         return False
                 except json.JSONDecodeError:
                     continue
@@ -192,10 +204,6 @@ def append_to_qbank(
         f.write(json.dumps(question.model_dump(), ensure_ascii=False) + "\n")
 
     return True
-
-
-
-from tools.llm_client import generate_structured_json
 
 
 def auto_forge_questions(
@@ -210,7 +218,7 @@ def auto_forge_questions(
         console.print(f"[red]Error: Chunk file '{chunk_file}' not found.[/red]")
         return 0
 
-    with open(chunk_p, "r", encoding="utf-8") as f:
+    with open(chunk_p, encoding="utf-8") as f:
         chunks_data = [json.loads(line) for line in f if line.strip()]
 
     if not chunks_data:
@@ -220,19 +228,23 @@ def auto_forge_questions(
     style_profile = None
     prof_p = Path(profile_path)
     if prof_p.exists():
-        with open(prof_p, "r", encoding="utf-8") as f:
+        with open(prof_p, encoding="utf-8") as f:
             style_profile = ExamStyleProfile(**json.load(f))
-            console.print(f"[green]✔ Active Style Profile loaded: {style_profile.style_name} (Track A)[/green]")
+            console.print(
+                f"[green]✔ Active Style Profile loaded: {style_profile.style_name} (Track A)[/green]"
+            )
     else:
-        console.print("[blue]ℹ No exam profile found. Using Track B (Pedagogical Mastery Mode)[/blue]")
+        console.print(
+            "[blue]ℹ No exam profile found. Using Track B (Pedagogical Mastery Mode)[/blue]"
+        )
 
     success_count = 0
     total_to_forge = min(count, len(chunks_data))
 
     # Pre-cache existing IDs to avoid O(N^2) disk reads
-    existing_ids: Set[str] = set()
+    existing_ids: set[str] = set()
     if Path(qbank_path).exists():
-        with open(qbank_path, "r", encoding="utf-8") as f:
+        with open(qbank_path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -244,7 +256,9 @@ def auto_forge_questions(
 
     for idx in range(total_to_forge):
         chunk = ContentChunk(**chunks_data[idx])
-        console.print(f"\n[bold cyan]Forging question {idx + 1}/{total_to_forge}...[/bold cyan] ([dim]{chunk.chunk_id}[/dim])")
+        console.print(
+            f"\n[bold cyan]Forging question {idx + 1}/{total_to_forge}...[/bold cyan] ([dim]{chunk.chunk_id}[/dim])"
+        )
 
         prompt = build_forge_prompt(chunk, style_profile)
         system_prompt = "You are an elite academic and medical test constructor. Always output strictly valid JSON adhering to the provided schema with no markdown explanations outside the JSON."
@@ -253,7 +267,9 @@ def auto_forge_questions(
             q_dict = generate_structured_json(system_prompt, prompt)
             question = QBankQuestion(**q_dict)
 
-            flaws = validate_question_flaws(q_dict, allow_negative=(style_profile and style_profile.allows_negative_stems))
+            flaws = validate_question_flaws(
+                q_dict, allow_negative=bool(style_profile and style_profile.allows_negative_stems)
+            )
             if flaws:
                 console.print("[yellow]⚠️ Flaws detected:[/yellow] " + ", ".join(flaws))
                 if not allow_flaws:
@@ -261,7 +277,9 @@ def auto_forge_questions(
                     continue
 
             if append_to_qbank(question, qbank_path, existing_ids=existing_ids):
-                console.print(f"[green]✅ Forged and saved: {question.id} ('{question.lead_in[:50]}...')[/green]")
+                console.print(
+                    f"[green]✅ Forged and saved: {question.id} ('{question.lead_in[:50]}...')[/green]"
+                )
                 success_count += 1
 
         except Exception as e:
@@ -270,30 +288,43 @@ def auto_forge_questions(
     return success_count
 
 
-
 def main():
-    parser = argparse.ArgumentParser(description="Forge, validate, and manage PDF-School question banks")
+    parser = argparse.ArgumentParser(
+        description="Forge, validate, and manage PDF-School question banks"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Auto-forge subcommand
-    p_auto = subparsers.add_parser("auto-forge", help="Automatically generate questions using the active LLM backend")
+    p_auto = subparsers.add_parser(
+        "auto-forge", help="Automatically generate questions using the active LLM backend"
+    )
     p_auto.add_argument("--chunk-file", required=True, help="Path to chunk JSONL file")
     p_auto.add_argument("--count", type=int, default=5, help="Number of questions to forge")
-    p_auto.add_argument("--profile", default="data/exam_style.json", help="Path to exam style profile")
+    p_auto.add_argument(
+        "--profile", default="data/exam_style.json", help="Path to exam style profile"
+    )
     p_auto.add_argument("--qbank", default="data/qbank.jsonl", help="Target qbank.jsonl path")
-    p_auto.add_argument("--allow-flaws", action="store_true", help="Allow ingestion despite NBME item flaws")
+    p_auto.add_argument(
+        "--allow-flaws", action="store_true", help="Allow ingestion despite NBME item flaws"
+    )
 
     # Prompt builder subcommand
     p_prompt = subparsers.add_parser("build-prompt", help="Generate forging prompt for a chunk")
     p_prompt.add_argument("--chunk-file", required=True, help="Path to chunk JSONL file")
     p_prompt.add_argument("--chunk-index", type=int, default=0, help="Index of chunk to prompt")
-    p_prompt.add_argument("--profile", default="data/exam_style.json", help="Path to exam style profile")
+    p_prompt.add_argument(
+        "--profile", default="data/exam_style.json", help="Path to exam style profile"
+    )
 
     # Ingestion subcommand
-    p_ingest = subparsers.add_parser("ingest", help="Validate and ingest a forged question JSON into qbank.jsonl")
+    p_ingest = subparsers.add_parser(
+        "ingest", help="Validate and ingest a forged question JSON into qbank.jsonl"
+    )
     p_ingest.add_argument("question_json", help="Path to question JSON file or raw JSON string")
     p_ingest.add_argument("--qbank", default="data/qbank.jsonl", help="Target qbank.jsonl path")
-    p_ingest.add_argument("--allow-flaws", action="store_true", help="Allow ingestion despite NBME item flaws")
+    p_ingest.add_argument(
+        "--allow-flaws", action="store_true", help="Allow ingestion despite NBME item flaws"
+    )
 
     args = parser.parse_args()
 
@@ -305,19 +336,23 @@ def main():
             qbank_path=args.qbank,
             allow_flaws=args.allow_flaws,
         )
-        console.print(f"\n[bold green]🎉 Auto-forge completed: {count} questions added to {args.qbank}[/bold green]")
+        console.print(
+            f"\n[bold green]🎉 Auto-forge completed: {count} questions added to {args.qbank}[/bold green]"
+        )
 
     elif args.command == "build-prompt":
         chunk_path = Path(args.chunk_file)
         if not chunk_path.exists():
             console.print(f"[red]Error: Chunk file '{args.chunk_file}' not found.[/red]")
             sys.exit(1)
-        
-        with open(chunk_path, "r", encoding="utf-8") as f:
+
+        with open(chunk_path, encoding="utf-8") as f:
             lines = [line for line in f if line.strip()]
-        
+
         if args.chunk_index >= len(lines):
-            console.print(f"[red]Error: Chunk index {args.chunk_index} out of range ({len(lines)} chunks available).[/red]")
+            console.print(
+                f"[red]Error: Chunk index {args.chunk_index} out of range ({len(lines)} chunks available).[/red]"
+            )
             sys.exit(1)
 
         chunk_data = json.loads(lines[args.chunk_index])
@@ -326,11 +361,15 @@ def main():
         style_profile = None
         prof_path = Path(args.profile)
         if prof_path.exists():
-            with open(prof_path, "r", encoding="utf-8") as f:
+            with open(prof_path, encoding="utf-8") as f:
                 style_profile = ExamStyleProfile(**json.load(f))
-                console.print(f"[green]✔ Active Style Profile loaded: {style_profile.style_name} (Track A)[/green]")
+                console.print(
+                    f"[green]✔ Active Style Profile loaded: {style_profile.style_name} (Track A)[/green]"
+                )
         else:
-            console.print("[blue]ℹ No profile found. Using Track B (Pedagogical Mastery Mode)[/blue]")
+            console.print(
+                "[blue]ℹ No profile found. Using Track B (Pedagogical Mastery Mode)[/blue]"
+            )
 
         prompt = build_forge_prompt(chunk, style_profile)
         print("\n" + "=" * 40 + " GENERATION PROMPT " + "=" * 40)
@@ -342,11 +381,10 @@ def main():
         if q_raw.startswith("{") or len(q_raw) > 1024:
             data = json.loads(q_raw)
         elif Path(q_raw).exists():
-            with open(q_raw, "r", encoding="utf-8") as f:
+            with open(q_raw, encoding="utf-8") as f:
                 data = json.load(f)
         else:
             data = json.loads(q_raw)
-
 
         # Validate against schema
         try:
@@ -362,14 +400,17 @@ def main():
             for fl in flaws:
                 console.print(f"  - {fl}")
             if not args.allow_flaws:
-                console.print("[red]❌ Ingestion aborted due to item-writing flaws. Use --allow-flaws to override.[/red]")
+                console.print(
+                    "[red]❌ Ingestion aborted due to item-writing flaws. Use --allow-flaws to override.[/red]"
+                )
                 sys.exit(1)
 
         success = append_to_qbank(question, args.qbank)
         if success:
-            console.print(f"[green]✅ Successfully validated and appended question '{question.id}' to {args.qbank}[/green]")
+            console.print(
+                f"[green]✅ Successfully validated and appended question '{question.id}' to {args.qbank}[/green]"
+            )
 
 
 if __name__ == "__main__":
     main()
-

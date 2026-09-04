@@ -18,21 +18,18 @@ if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
 import argparse
 import json
 from datetime import datetime, timezone
-from typing import Dict, List, Set, Tuple
 
-
-from fsrs import Card, Rating, Scheduler, State
+from fsrs import Card, Rating, Scheduler
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
 sys.path.insert(0, str(PROJECT_ROOT))
-from tools.schemas import DailySchedule, HistoryRecord, QBankQuestion
+from tools.schemas import DailySchedule, HistoryRecord
 
 DEFAULT_QBANK = str(PROJECT_ROOT / "data" / "qbank.jsonl")
 DEFAULT_HISTORY = str(PROJECT_ROOT / "data" / "history.jsonl")
 DEFAULT_SCHEDULE = str(PROJECT_ROOT / "data" / "schedule.json")
-
 
 
 console = Console()
@@ -40,7 +37,7 @@ console = Console()
 
 def compute_question_fsrs_states(
     history_path: str = "data/history.jsonl",
-) -> Dict[str, Card]:
+) -> dict[str, Card]:
     """
     Replays history.jsonl to compute the current FSRS Card state for each question.
     Records are sorted by timestamp to ensure chronological replay.
@@ -50,10 +47,10 @@ def compute_question_fsrs_states(
         return {}
 
     scheduler = Scheduler()
-    cards: Dict[str, Card] = {}
-    records: List[Tuple[datetime, HistoryRecord]] = []
+    cards: dict[str, Card] = {}
+    records: list[tuple[datetime, HistoryRecord]] = []
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -99,12 +96,13 @@ def generate_daily_schedule(
     output_path: str = "data/schedule.json",
     max_reviews: int = 30,
     max_new: int = 15,
+    target_date: str | None = None,
 ) -> DailySchedule:
     # 1. Load all available question IDs
-    all_q_ids: List[str] = []
+    all_q_ids: list[str] = []
     q_bank_file = Path(qbank_path)
     if q_bank_file.exists():
-        with open(q_bank_file, "r", encoding="utf-8") as f:
+        with open(q_bank_file, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -117,12 +115,17 @@ def generate_daily_schedule(
 
     # 2. Compute memory state for reviewed questions
     cards = compute_question_fsrs_states(history_path)
-    now = datetime.now(timezone.utc)
+    if target_date:
+        now = datetime.fromisoformat(target_date)
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=timezone.utc)
+    else:
+        now = datetime.now(timezone.utc)
 
     # 3. Identify due reviews, filtering out deleted/orphaned questions
     # and sorting by most overdue first
-    due_cards: List[Tuple[datetime, str]] = []
-    active_ids: Set[str] = set(all_q_ids)
+    due_cards: list[tuple[datetime, str]] = []
+    active_ids: set[str] = set(all_q_ids)
 
     for q_id, card in cards.items():
         if q_id not in active_ids:
@@ -138,7 +141,7 @@ def generate_daily_schedule(
     due_reviews = [q_id for _, q_id in due_cards]
 
     # 4. Identify unencountered (new) questions
-    seen_ids: Set[str] = set(cards.keys())
+    seen_ids: set[str] = set(cards.keys())
     unseen_ids = [qid for qid in all_q_ids if qid not in seen_ids]
 
     selected_reviews = due_reviews[:max_reviews]
@@ -149,7 +152,6 @@ def generate_daily_schedule(
         date=today_str,
         due_reviews=selected_reviews,
         new_questions=selected_new,
-
     )
 
     out_file = Path(output_path)
@@ -161,36 +163,69 @@ def generate_daily_schedule(
 
 
 def display_schedule(schedule: DailySchedule):
-    table = Table(title=f"📅 Daily Study Block ({schedule.date})", show_header=True, header_style="bold blue")
+    table = Table(
+        title=f"📅 Daily Study Block ({schedule.date})", show_header=True, header_style="bold blue"
+    )
     table.add_column("Category", style="cyan")
     table.add_column("Count", justify="right", style="bold green")
     table.add_column("Description", style="dim")
 
-    table.add_row("Due Reviews", str(len(schedule.due_reviews)), "FSRS Spaced Repetition cards ready for retrieval practice")
-    table.add_row("New Questions", str(len(schedule.new_questions)), "Unencountered curriculum questions")
-    table.add_row("Total Block", str(len(schedule.due_reviews) + len(schedule.new_questions)), "Target daily session load")
+    table.add_row(
+        "Due Reviews",
+        str(len(schedule.due_reviews)),
+        "FSRS Spaced Repetition cards ready for retrieval practice",
+    )
+    table.add_row(
+        "New Questions", str(len(schedule.new_questions)), "Unencountered curriculum questions"
+    )
+    table.add_row(
+        "Total Block",
+        str(len(schedule.due_reviews) + len(schedule.new_questions)),
+        "Target daily session load",
+    )
 
     console.print(Panel(table, title="[bold]PDF-School FSRS Scheduler[/bold]", border_style="cyan"))
 
 
 def main():
-    parser = argparse.ArgumentParser(description="FSRS Spaced Repetition study scheduler for PDF-School")
+    parser = argparse.ArgumentParser(
+        description="FSRS Spaced Repetition study scheduler for PDF-School"
+    )
     parser.add_argument("--qbank", default=DEFAULT_QBANK, help="Path to qbank.jsonl")
     parser.add_argument("--history", default=DEFAULT_HISTORY, help="Path to history.jsonl")
     parser.add_argument("--output", default=DEFAULT_SCHEDULE, help="Path to schedule.json")
 
-    parser.add_argument("--max-reviews", type=int, default=30, help="Maximum review questions per day")
+    parser.add_argument(
+        "--max-reviews", type=int, default=30, help="Maximum review questions per day"
+    )
     parser.add_argument("--max-new", type=int, default=15, help="Maximum new questions per day")
+    parser.add_argument(
+        "--roadmap", action="store_true", help="Display curricular roadmap targets for today"
+    )
+    parser.add_argument(
+        "--date", default=None, help="Target date for schedule/roadmap (YYYY-MM-DD)"
+    )
 
     args = parser.parse_args()
+    target_d = args.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     schedule = generate_daily_schedule(
         qbank_path=args.qbank,
         history_path=args.history,
         output_path=args.output,
         max_reviews=args.max_reviews,
         max_new=args.max_new,
+        target_date=target_d,
     )
     display_schedule(schedule)
+
+    roadmap_file = PROJECT_ROOT / "data" / "roadmap.json"
+    if (args.roadmap or roadmap_file.exists()) and roadmap_file.exists():
+        try:
+            from tools.roadmap import print_today_view
+
+            print_today_view(target_d)
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

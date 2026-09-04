@@ -19,7 +19,6 @@ if _venv_python.exists() and sys.prefix != str(PROJECT_ROOT / ".venv"):
 import argparse
 import hashlib
 import json
-from typing import List, Optional
 
 import pymupdf4llm
 from markitdown import MarkItDown
@@ -32,13 +31,12 @@ from tools.schemas import ContentChunk
 console = Console()
 
 
-
 def extract_pdf_with_pymupdf4llm(
     pdf_path: Path,
     output_dir: Path,
     figures_dir: Path,
     target_chunk_words: int = 500,
-) -> List[ContentChunk]:
+) -> list[ContentChunk]:
     output_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
 
@@ -53,12 +51,12 @@ def extract_pdf_with_pymupdf4llm(
     )
 
     doc_stem = pdf_path.stem
-    chunks: List[ContentChunk] = []
+    chunks: list[ContentChunk] = []
 
-    current_words: List[str] = []
+    current_words: list[str] = []
     current_page_start = 1
-    current_figures: List[str] = []
-    current_section: Optional[str] = None
+    current_figures: list[str] = []
+    current_section: str | None = None
 
     for page_idx, page_info in enumerate(pages_data):
         page_num = page_idx + 1
@@ -68,6 +66,7 @@ def extract_pdf_with_pymupdf4llm(
 
         # Extract image links embedded in markdown
         import re
+
         img_matches = re.findall(r"!\[.*?\]\((.*?)\)", page_text)
         current_figures.extend(img_matches)
 
@@ -81,7 +80,9 @@ def extract_pdf_with_pymupdf4llm(
 
         if len(current_words) >= target_chunk_words or page_idx == len(pages_data) - 1:
             combined_text = " ".join(current_words)
-            chunk_hash = hashlib.sha256(f"{doc_stem}_{current_page_start}_{page_num}_{combined_text[:60]}".encode()).hexdigest()[:12]
+            chunk_hash = hashlib.sha256(
+                f"{doc_stem}_{current_page_start}_{page_num}_{combined_text[:60]}".encode()
+            ).hexdigest()[:12]
             chunk_id = f"{doc_stem}_p{current_page_start}-{page_num}_{chunk_hash}"
 
             chunk = ContentChunk(
@@ -103,7 +104,9 @@ def extract_pdf_with_pymupdf4llm(
     # Flush any remaining words from trailing pages
     if current_words:
         combined_text = " ".join(current_words)
-        chunk_hash = hashlib.sha256(f"{doc_stem}_{current_page_start}_{len(pages_data)}_{combined_text[:60]}".encode()).hexdigest()[:12]
+        chunk_hash = hashlib.sha256(
+            f"{doc_stem}_{current_page_start}_{len(pages_data)}_{combined_text[:60]}".encode()
+        ).hexdigest()[:12]
         chunk_id = f"{doc_stem}_p{current_page_start}-{len(pages_data)}_{chunk_hash}"
         chunk = ContentChunk(
             chunk_id=chunk_id,
@@ -125,12 +128,11 @@ def extract_pdf_with_pymupdf4llm(
     return chunks
 
 
-
 def extract_office_with_markitdown(
     file_path: Path,
     output_dir: Path,
     target_chunk_words: int = 500,
-) -> List[ContentChunk]:
+) -> list[ContentChunk]:
     output_dir.mkdir(parents=True, exist_ok=True)
     doc_stem = file_path.stem
 
@@ -139,13 +141,14 @@ def extract_office_with_markitdown(
     raw_markdown = result.text_content
 
     paragraphs = raw_markdown.split("\n\n")
-    chunks: List[ContentChunk] = []
+    chunks: list[ContentChunk] = []
 
-    current_words: List[str] = []
+    current_words: list[str] = []
     chunk_index = 1
-    current_section: Optional[str] = None
+    current_section: str | None = None
 
     import re
+
     for p in paragraphs:
         p_clean = p.strip()
         if not p_clean:
@@ -160,7 +163,9 @@ def extract_office_with_markitdown(
 
         if len(current_words) >= target_chunk_words:
             combined_text = " ".join(current_words)
-            chunk_hash = hashlib.sha256(f"{doc_stem}_{chunk_index}_{combined_text[:60]}".encode()).hexdigest()[:12]
+            chunk_hash = hashlib.sha256(
+                f"{doc_stem}_{chunk_index}_{combined_text[:60]}".encode()
+            ).hexdigest()[:12]
             chunk_id = f"{doc_stem}_chunk{chunk_index}_{chunk_hash}"
 
             chunk = ContentChunk(
@@ -180,7 +185,9 @@ def extract_office_with_markitdown(
 
     if current_words:
         combined_text = " ".join(current_words)
-        chunk_hash = hashlib.sha256(f"{doc_stem}_{chunk_index}_{combined_text[:60]}".encode()).hexdigest()[:12]
+        chunk_hash = hashlib.sha256(
+            f"{doc_stem}_{chunk_index}_{combined_text[:60]}".encode()
+        ).hexdigest()[:12]
         chunk_id = f"{doc_stem}_chunk{chunk_index}_{chunk_hash}"
         chunk = ContentChunk(
             chunk_id=chunk_id,
@@ -226,7 +233,9 @@ def process_file_or_dir(
         console.print(f"[yellow]No supported documents found in '{target_path_str}'.[/yellow]")
         return
 
-    table = Table(title="📚 PDF-School Ingestion Report", show_header=True, header_style="bold green")
+    table = Table(
+        title="📚 PDF-School Ingestion Report", show_header=True, header_style="bold green"
+    )
     table.add_column("File", style="cyan")
     table.add_column("Engine", style="magenta")
     table.add_column("Chunks", justify="right", style="bold")
@@ -236,11 +245,20 @@ def process_file_or_dir(
         ext = f.suffix.lower()
         try:
             if ext == ".pdf":
-                chunks = extract_pdf_with_pymupdf4llm(f, out_dir, fig_dir, target_chunk_words=chunk_size)
-                table.add_row(f.name, "PyMuPDF4LLM (Layout & Tables)", str(len(chunks)), f"{f.stem}_chunks.jsonl")
+                chunks = extract_pdf_with_pymupdf4llm(
+                    f, out_dir, fig_dir, target_chunk_words=chunk_size
+                )
+                table.add_row(
+                    f.name,
+                    "PyMuPDF4LLM (Layout & Tables)",
+                    str(len(chunks)),
+                    f"{f.stem}_chunks.jsonl",
+                )
             elif ext in [".docx", ".pptx", ".xlsx", ".txt", ".md"]:
                 chunks = extract_office_with_markitdown(f, out_dir, target_chunk_words=chunk_size)
-                table.add_row(f.name, "Microsoft MarkItDown", str(len(chunks)), f"{f.stem}_chunks.jsonl")
+                table.add_row(
+                    f.name, "Microsoft MarkItDown", str(len(chunks)), f"{f.stem}_chunks.jsonl"
+                )
         except Exception as e:
             table.add_row(f.name, "[red]Failed[/red]", "0", f"[red]{e}[/red]")
 
@@ -248,12 +266,21 @@ def process_file_or_dir(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Multi-format document extractor (PDF, DOCX, PPTX) for PDF-School")
+    parser = argparse.ArgumentParser(
+        description="Multi-format document extractor (PDF, DOCX, PPTX) for PDF-School"
+    )
     parser.add_argument("target", help="Path to document file or directory")
-    parser.add_argument("--output-dir", default=str(PROJECT_ROOT / "content"), help="Directory for chunk JSONL files")
-    parser.add_argument("--figures-dir", default=str(PROJECT_ROOT / "content" / "figures"), help="Directory for extracted images")
+    parser.add_argument(
+        "--output-dir",
+        default=str(PROJECT_ROOT / "content"),
+        help="Directory for chunk JSONL files",
+    )
+    parser.add_argument(
+        "--figures-dir",
+        default=str(PROJECT_ROOT / "content" / "figures"),
+        help="Directory for extracted images",
+    )
     parser.add_argument("--chunk-size", type=int, default=500, help="Target word count per chunk")
-
 
     args = parser.parse_args()
     process_file_or_dir(args.target, args.output_dir, args.figures_dir, args.chunk_size)

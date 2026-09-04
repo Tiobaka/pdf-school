@@ -1,0 +1,124 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pdf-school"
+version = "0.1.0"
+description = "The UNIX-style agentic study engine: convert course notes into high-yield question banks, FSRS spaced repetition, and interactive terminal examination."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "PDF-School Contributors" }
+]
+keywords = ["study", "medical", "anki", "fsrs", "spaced-repetition", "tui", "textual", "cli"]
+dependencies = [
+    "pydantic>=2.10.0",
+    "rich>=13.0.0",
+    "click>=8.0.0",
+    "fsrs>=6.0.0",
+    "pymupdf>=1.25.0",
+    "pymupdf4llm>=1.28.0",
+    "markitdown[docx]>=0.1.7",
+    "textual>=8.0.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "types-requests>=2.30.0",
+    "types-PyYAML>=6.0.0",
+]
+
+[project.scripts]
+pdf-school = "pdf_school.cli.main:cli"
+pschool = "pdf_school.cli.main:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pdf_school"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+pythonpath = ["src", "."]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests", "tools"]
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",   # line length (handled by ruff format)
+    "B008",   # do not perform function calls in argument defaults (standard click/fastapi pattern)
+    "SIM105", # use contextlib.suppress (try/except pass is explicit and clear in scripts)
+    "SIM117", # nested with statements (often needed/cleaner in Textual compose methods)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tools/*" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pdf_school", "tools"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["pymupdf", "pymupdf4llm", "markitdown", "fsrs.*", "textual.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["src/pdf_school"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/tui/cli_runner.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "def main\\(\\)",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+

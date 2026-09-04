@@ -1,6 +1,4 @@
-from pathlib import Path
-from tools.profile_exam import analyze_exam_text, profile_exams
-from tools.schemas import ExamStyleProfile
+from pdf_school.engine.profile_exam import analyze_exam_text, display_profile, profile_exams
 
 
 def test_analyze_exam_text_short_recall():
@@ -28,7 +26,8 @@ def test_analyze_exam_text_short_recall():
 
 def test_profile_exams_file(tmp_path):
     exam_file = tmp_path / "pharmacology_midterm.txt"
-    exam_file.write_text("""
+    exam_file.write_text(
+        """
     1. A 55-year-old male with chronic hypertension presents for routine follow-up. Blood pressure is 150/92 mmHg.
     Which of the following first-line medications is most appropriate?
     A. Lisinopril
@@ -36,7 +35,9 @@ def test_profile_exams_file(tmp_path):
     C. Hydrochlorothiazide
     D. Metoprolol
     E. Spironolactone
-    """, encoding="utf-8")
+    """,
+        encoding="utf-8",
+    )
 
     out_json = tmp_path / "style.json"
     profile = profile_exams(str(exam_file), str(out_json))
@@ -44,3 +45,20 @@ def test_profile_exams_file(tmp_path):
     assert profile is not None
     assert profile.option_count == 5
     assert out_json.exists()
+
+
+def test_display_profile_and_dir(tmp_path):
+    exam_dir = tmp_path / "exams"
+    exam_dir.mkdir()
+    f1 = exam_dir / "exam1.txt"
+    f1.write_text(
+        "1. Question?\nA. Opt 1\nB. Opt 2\nC. Opt 3\nD. Opt 4\nE. Opt 5\n", encoding="utf-8"
+    )
+
+    out_json = tmp_path / "dir_style.json"
+    prof = profile_exams(str(exam_dir), str(out_json))
+    assert prof is not None
+    assert prof.option_count == 5
+
+    # Test display_profile does not throw
+    display_profile(prof, str(out_json))
