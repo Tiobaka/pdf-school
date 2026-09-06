@@ -54,3 +54,15 @@ def test_log_history(tmp_path):
     assert data["is_correct"] is False
     assert data["error_category"] == "misconception"
     assert data["switched_answer"] is True
+
+
+def test_cli_runner_argument_parsing(monkeypatch):
+    from pdf_school.tui.cli_runner import main as cli_main
+
+    # Test that --help or standard parser works without AttributeError
+    monkeypatch.setattr("sys.argv", ["tutor_cli.py", "--help"])
+    import pytest
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli_main()
+    assert exc_info.value.code == 0

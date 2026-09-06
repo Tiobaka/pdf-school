@@ -267,6 +267,7 @@ def main():
     parser.add_argument(
         "--mode", choices=["tutor", "timed"], default="tutor", help="Examination mode"
     )
+    parser.add_argument("--count", type=int, default=15, help="Number of questions in session")
     parser.add_argument(
         "--tui", action="store_true", help="Launch in visual split-screen Textual TUI"
     )
