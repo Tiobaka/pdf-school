@@ -217,32 +217,49 @@ class TutorTUIApp(App):
         width: 55%;
         height: 100%;
         border-right: solid $primary;
-        padding: 1;
+        padding: 0 1;
+        layout: vertical;
     }
 
     #sidebar-pane {
         width: 45%;
         height: 100%;
-        padding: 1;
+        padding: 0 1;
+    }
+
+    #question-scroll-area {
+        height: 1fr;
+        scrollbar-gutter: stable;
+        padding-right: 1;
     }
 
     #vignette-box {
         height: auto;
-        max-height: 50%;
         border: round $primary;
         padding: 1;
+        margin-top: 1;
+        margin-bottom: 1;
+    }
+
+    #leadin-label {
+        height: auto;
+        margin-top: 1;
         margin-bottom: 1;
     }
 
     #options-container {
         height: auto;
         margin-top: 1;
+        margin-bottom: 1;
     }
 
     .option-btn {
         width: 100%;
+        height: auto;
+        min-height: 2;
         margin-bottom: 1;
         text-align: left;
+        padding: 0 1;
     }
 
     .eliminated {
@@ -363,17 +380,18 @@ class TutorTUIApp(App):
             yield Label("", id="q-topic-badge")
 
         with Horizontal(id="main-container"):
-            # Left Pane: Question & Choices
+            # Left Pane: Question & Choices (scrollable container + fixed action bar)
             with Vertical(id="question-pane"):
-                with VerticalScroll(id="vignette-box"):
-                    yield Markdown("", id="vignette-markdown")
-                yield Static("", id="leadin-label")
-                with Vertical(id="options-container"):
-                    yield Button("", id="opt-btn-A", classes="option-btn")
-                    yield Button("", id="opt-btn-B", classes="option-btn")
-                    yield Button("", id="opt-btn-C", classes="option-btn")
-                    yield Button("", id="opt-btn-D", classes="option-btn")
-                    yield Button("", id="opt-btn-E", classes="option-btn")
+                with VerticalScroll(id="question-scroll-area"):
+                    with Vertical(id="vignette-box"):
+                        yield Markdown("", id="vignette-markdown")
+                    yield Static("", id="leadin-label")
+                    with Vertical(id="options-container"):
+                        yield Button("", id="opt-btn-A", classes="option-btn")
+                        yield Button("", id="opt-btn-B", classes="option-btn")
+                        yield Button("", id="opt-btn-C", classes="option-btn")
+                        yield Button("", id="opt-btn-D", classes="option-btn")
+                        yield Button("", id="opt-btn-E", classes="option-btn")
                 with Horizontal(id="action-bar"):
                     yield Button("Submit (Enter)", id="btn-submit", variant="primary")
                     yield Button("Eliminate (x)", id="btn-strike", variant="default")
@@ -524,6 +542,12 @@ class TutorTUIApp(App):
             except Exception:
                 pass
 
+        # Reset scroll position to top on question change
+        try:
+            self.query_one("#question-scroll-area", VerticalScroll).scroll_to(y=0, animate=False)
+        except Exception:
+            pass
+
     def render_breakdown_markdown(self, q: QBankQuestion, chosen: str | None, widget: Markdown):
         is_correct = chosen == q.correct_key
         banner = (
@@ -572,6 +596,10 @@ class TutorTUIApp(App):
                 self.first_answers[self.current_idx] = key
             self.user_answers[self.current_idx] = key
             self.refresh_question_view()
+            try:
+                self.query_one(f"#opt-btn-{key}", Button).scroll_visible(animate=False)
+            except Exception:
+                pass
 
     def action_submit_choice(self, auto_confirm: bool = False):
         if self.submitted.get(self.current_idx, False):

@@ -122,7 +122,7 @@
       "is_rest": false,
       "module": "Reumatología",
       "topic": "Lupus Eritematoso Sistémico (LES) — Criterios EULAR/ACR 2019, Perfil de Anticuerpos",
-      "target_vignettes": 126,
+      "target_vignettes": 180,
       "target_hours": 4.0,
       "tasks": [
         "[VIGNETTE_DRILL] 1.5h (18 casos)",
@@ -139,7 +139,7 @@
       "is_rest": false,
       "module": "Reumatología",
       "topic": "Nefritis Lúpica: Estadificación y Manejo; Lupus en el Embarazo",
-      "target_vignettes": 126,
+      "target_vignettes": 180,
       "target_hours": 4.0,
       "tasks": [
         "[VIGNETTE_DRILL] 1.5h (18 casos)",
@@ -156,7 +156,7 @@
       "is_rest": false,
       "module": "Reumatología",
       "topic": "Vasculitis Sistémicas (Grandes, Medianos, Pequeños Vasos - CHCC 2012) & Polimialgia Reumática (PMR)",
-      "target_vignettes": 126,
+      "target_vignettes": 180,
       "target_hours": 4.0,
       "tasks": [
         "[VIGNETTE_DRILL] 1.5h (18 casos)",

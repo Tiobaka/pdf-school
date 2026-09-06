@@ -53,9 +53,25 @@ def test_tui_app_headless_mount_and_theme_cycling(tmp_path):
             app.action_eliminate_choice()
             assert "A" not in app.eliminated_options[0]
 
-            # Select correct option B
-            app.action_select_opt("B")
-            assert app.user_answers[0] == "B"
+            # Check scroll area and all buttons
+            from textual.containers import VerticalScroll
+            from textual.widgets import Button
+
+            scroll_area = app.query_one("#question-scroll-area", VerticalScroll)
+            assert scroll_area is not None
+
+            btn_a = app.query_one("#opt-btn-A", Button)
+            btn_b = app.query_one("#opt-btn-B", Button)
+            btn_c = app.query_one("#opt-btn-C", Button)
+            btn_d = app.query_one("#opt-btn-D", Button)
+            assert btn_a.display is True
+            assert btn_b.display is True
+            assert btn_c.display is True
+            assert btn_d.display is True
+
+            # Select option D
+            app.action_select_opt("D")
+            assert app.user_answers[0] == "D"
 
             # Test tabs switching
             app.action_toggle_source()
@@ -67,7 +83,10 @@ def test_tui_app_headless_mount_and_theme_cycling(tmp_path):
             app.action_toggle_labs()
             assert tabs.active == "tab-labs"
 
-            # Test submit
+            # Select correct option B and submit
+            app.action_select_opt("B")
+            assert app.user_answers[0] == "B"
+
             app.action_submit_choice(auto_confirm=True)
             assert app.submitted[0] is True
             assert hist_file.exists()
