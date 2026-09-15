@@ -14,7 +14,7 @@ from pdf_school.engine.roadmap import (
 def test_load_roadmap():
     roadmap = load_roadmap()
     assert roadmap["exam_target"] == "Final de Clínica Médica II"
-    assert len(roadmap["days"]) == 41
+    assert len(roadmap["days"]) == 28
     assert len(roadmap["milestones"]) == 4
 
 

@@ -1,17 +1,29 @@
 {
-  "date": "2026-09-04",
-  "due_reviews": [],
-  "new_questions": [
-    "reumato_past_001",
-    "reumato_past_002",
-    "reumato_past_003",
+  "date": "2026-09-15",
+  "due_reviews": [
     "reumato_past_004",
     "reumato_past_005",
     "endo_past_001",
     "endo_past_002",
     "neumo_past_001",
-    "neumo_past_002",
     "endo_past_003"
+  ],
+  "new_questions": [
+    "reumato_day02_001",
+    "reumato_day02_002",
+    "reumato_day02_003",
+    "reumato_day02_004",
+    "reumato_day02_005",
+    "reumato_day02_006",
+    "reumato_day02_007",
+    "reumato_day02_008",
+    "reumato_day02_009",
+    "reumato_day02_010",
+    "reumato_day02_011",
+    "reumato_day02_012",
+    "reumato_day02_013",
+    "reumato_day02_014",
+    "reumato_day02_015"
   ],
   "target_date": null
 }

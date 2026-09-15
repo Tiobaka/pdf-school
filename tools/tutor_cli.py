@@ -287,6 +287,13 @@ def main():
         action="store_true",
         help="Adaptive weakness remediation mode",
     )
+    parser.add_argument(
+        "--daily",
+        "--schedule",
+        dest="daily",
+        action="store_true",
+        help="Load today's FSRS spaced repetition review and new questions queue",
+    )
 
     args = parser.parse_args()
 
@@ -306,6 +313,24 @@ def main():
             questions = load_qbank(args.qbank)
             if args.topic:
                 questions = [q for q in questions if args.topic.lower() in q.topic.lower()]
+    elif args.daily:
+        from tools.scheduler import generate_daily_schedule
+
+        sched = generate_daily_schedule(
+            qbank_path=args.qbank,
+            history_path=args.history,
+            output_path=str(PROJECT_ROOT / "data" / "schedule.json"),
+        )
+        all_questions = {q.id: q for q in load_qbank(args.qbank)}
+        target_ids = sched.due_reviews + sched.new_questions
+        questions = [all_questions[qid] for qid in target_ids if qid in all_questions]
+        if args.topic:
+            questions = [q for q in questions if args.topic.lower() in q.topic.lower()]
+        if not questions:
+            console.print(
+                "[yellow]No scheduled questions pending for today. Loading standard question bank.[/yellow]"
+            )
+            questions = load_qbank(args.qbank)
     else:
         questions = load_qbank(args.qbank)
         if args.topic:
